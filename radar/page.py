@@ -22,14 +22,18 @@ def build_page(state, matcher, settings, health, site_dir, repo: str) -> int:
             continue
         sources = sorted(r.get("first_seen_by", r.get("seen_by", {})).items(), key=lambda kv: kv[1])
         rows.append({
+            "k": k,
             "c": r["company"], "t": r["title"], "u": r["url"],
             "l": ", ".join(r.get("locations") or [])[:120], "ll": r.get("loc_label", ""),
             "s": r.get("season") or "", "p": r.get("posted_at") or "",
             "f": r["first_seen"], "q": bool(r.get("quiet")),
+            # "e" = when it really appeared: the company's posting date if that's earlier than when we found it
+            # (a list re-adding a months-old posting shouldn't look new)
+            "e": min(r["first_seen"], r["posted_at"]) if r.get("posted_at") else r["first_seen"],
             "src": [label(s) for s, _ in sources],
         })
     # newest first; postings that were already open when the radar started go by posting date
-    rows.sort(key=lambda x: (x["f"] if not x["q"] else (x["p"] or "0")), reverse=True)
+    rows.sort(key=lambda x: (x["e"] if not x["q"] else (x["p"] or "0")), reverse=True)
     rows = rows[:PAGE_LIMIT]
 
     links = {
@@ -100,6 +104,10 @@ label.tog{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut
 .meta{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .chip{background:var(--chip);border-radius:999px;padding:2px 8px}
 .when{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
+.row.done{opacity:.55}
+.row.done .t{text-decoration:line-through}
+.donebtn{margin-top:6px;padding:4px 10px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:12px;font-weight:600;cursor:pointer}
+.row.done .donebtn{background:var(--new);color:var(--newink);border-color:var(--newink)}
 .badge{font-size:11px;font-weight:700;color:var(--newink)}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
 summary{cursor:pointer;font-weight:600}
@@ -127,6 +135,7 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   <select id="loc"><option value="">All locations</option><option>US</option><option>Remote</option><option>Unclear</option></select>
   <select id="age"><option value="">Any time</option><option value="1">Found in last 24 hrs</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option></select>
   <label class="tog"><input type="checkbox" id="onlynew"> New since my last visit</label>
+  <label class="tog"><input type="checkbox" id="showdone"> Show done</label>
 </div>
 <div class="list" id="list"></div>
 <details><summary>Your settings</summary><div id="settings"></div></details>
@@ -143,16 +152,22 @@ $('updated').textContent='Last scan '+ago(h.run_at)+' · '+new Date(h.run_at).to
 const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const srcs=[...new Set(D.rows.flatMap(r=>r.src))].sort();
 srcs.forEach(s=>{const o=document.createElement('option');o.textContent=s;$('src').appendChild(o)});
-function isNew(r){return !r.q&&lastVisit&&r.f>lastVisit}
+// "Done" marks are saved in this browser only (phone and laptop keep separate lists).
+let done={};try{done=JSON.parse(localStorage.getItem('radarDone')||'{}')}catch(e){}
+function saveDone(){try{localStorage.setItem('radarDone',JSON.stringify(done))}catch(e){}}
+const NEW_WINDOW=3*86400000;
+function isNew(r){return !r.q&&lastVisit&&r.f>lastVisit&&(Date.now()-new Date(r.e))<NEW_WINDOW}
 function render(){
-  const q=$('q').value.toLowerCase(),src=$('src').value,loc=$('loc').value,age=+$('age').value,onlyNew=$('onlynew').checked;
+  const q=$('q').value.toLowerCase(),src=$('src').value,loc=$('loc').value,age=+$('age').value,onlyNew=$('onlynew').checked,showDone=$('showdone').checked;
   const cutoff=age?new Date(Date.now()-age*86400000).toISOString():'';
-  const rows=D.rows.filter(r=>(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||(!r.q&&r.f>=cutoff))&&(!onlyNew||isNew(r)));
-  const newCount=D.rows.filter(isNew).length;
-  $('stats').innerHTML=`<div class="stat"><b>${D.rows.length}</b><span>open internships</span></div><div class="stat"><b>${lastVisit?newCount:'—'}</b><span>new since last visit</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
-  $('list').innerHTML=rows.length?rows.slice(0,800).map(r=>`<div class="row${isNew(r)?' isnew':''}"><div><a class="t" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> ${isNew(r)?'<span class="badge">NEW</span>':''}<div class="c">${esc(r.c)}</div></div><div class="when">${r.q?'open when radar started':'found '+ago(r.f)}${r.p?'<br>posted '+ago(r.p):''}</div><div class="meta">${r.l?`<span class="chip">📍 ${esc(r.l)}</span>`:`<span class="chip">📍 ${esc(r.ll)}</span>`}${r.s?`<span class="chip">🗓 ${esc(r.s)}</span>`:''}${r.src.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</div></div>`).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
+  const rows=D.rows.filter(r=>(showDone||!done[r.k])&&(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||(!r.q&&r.e>=cutoff))&&(!onlyNew||isNew(r)));
+  const newCount=D.rows.filter(r=>isNew(r)&&!done[r.k]).length;
+  const doneCount=D.rows.filter(r=>done[r.k]).length;
+  $('stats').innerHTML=`<div class="stat"><b>${D.rows.length-doneCount}</b><span>open, not done</span></div><div class="stat"><b>${lastVisit?newCount:'—'}</b><span>new since last visit</span></div><div class="stat"><b>${doneCount}</b><span>marked done</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
+  $('list').innerHTML=rows.length?rows.slice(0,800).map(r=>`<div class="row${isNew(r)?' isnew':''}${done[r.k]?' done':''}"><div><a class="t" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> ${isNew(r)&&!done[r.k]?'<span class="badge">NEW</span>':''}<div class="c">${esc(r.c)}</div></div><div class="when">${r.q?'open when radar started':'found '+ago(r.f)}${r.p?'<br>posted '+ago(r.p):''}<br><button class="donebtn" data-k="${esc(r.k)}">${done[r.k]?'✓ Done (undo)':'Mark done'}</button></div><div class="meta">${r.l?`<span class="chip">📍 ${esc(r.l)}</span>`:`<span class="chip">📍 ${esc(r.ll)}</span>`}${r.s?`<span class="chip">🗓 ${esc(r.s)}</span>`:''}${r.src.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</div></div>`).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
 }
-['q','src','loc','age','onlynew'].forEach(id=>$(id).addEventListener('input',render));
+$('list').addEventListener('click',e=>{const b=e.target.closest('.donebtn');if(!b)return;const k=b.dataset.k;if(done[k])delete done[k];else done[k]=new Date().toISOString();saveDone();render()});
+['q','src','loc','age','onlynew','showdone'].forEach(id=>$(id).addEventListener('input',render));
 $('seen').onclick=()=>{lastVisit=new Date().toISOString();try{localStorage.setItem('radarLastVisit',lastVisit)}catch(e){};render()};
 if(!lastVisit){try{localStorage.setItem('radarLastVisit',new Date().toISOString())}catch(e){}}
 const S=D.summary;

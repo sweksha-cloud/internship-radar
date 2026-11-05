@@ -19,6 +19,7 @@ One connector per job system covers every company that uses it, so adding a comp
 ## Using it
 
 - **The page:** `https://<your-username>.github.io/internship-radar/`. Newest first, with search, filters, and a "New since my last visit" toggle.
+- **Mark done:** each posting has a **Mark done** button (for ones you applied to or don't want). Done postings are hidden, never deleted. Turn on **Show done** to see them again or undo. Done marks are saved in your browser, so your phone and laptop keep separate lists. Postings stay on the page for 60 days unless the company takes them down.
 - **Scan now:** the page's **Scan now** button opens the workflow. Click **Run workflow**. (The GitHub mobile app can do this too: repo → Actions → Radar → Run workflow.)
 - **Change what it looks for:** the page's **Edit settings** button opens [`settings.toml`](settings.toml). Edit the role keywords, excluded words, seasons, remote/unknown locations or alerts, then commit. The next scan uses them. Your settings are applied when alerting and building the page, so changing them never makes old postings look new.
 - **Change how often it scans:** edit the `cron` line in [`.github/workflows/radar.yml`](.github/workflows/radar.yml). `"17 */3 * * *"` = every 3 hours. `"17 */6 * * *"` = every 6 hours. `"17 14 * * *"` = once a day.
