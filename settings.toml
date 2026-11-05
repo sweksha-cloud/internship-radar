@@ -1,0 +1,74 @@
+# Internship Radar settings
+# Edit this file on GitHub (pencil icon) and commit. The next scan uses the new settings.
+# Matching is case-insensitive. Keywords match whole words, so "ml" won't match "html".
+
+[roles]
+# A posting must look like an internship: its title contains at least one of these.
+internship_keywords = ["intern", "interns", "internship", "co-op", "coop", "co op", "apprentice", "apprenticeship"]
+
+# ...and its title must contain at least one of these role keywords.
+# Add or remove anything. To accept every internship regardless of role, set this to [].
+role_keywords = [
+  "software", "swe", "sde", "developer", "programmer", "programming", "coding",
+  "backend", "back-end", "back end", "frontend", "front-end", "front end",
+  "full stack", "full-stack", "fullstack", "web", "mobile", "ios", "android",
+  "machine learning", "ml", "ai", "artificial intelligence", "deep learning", "llm", "nlp",
+  "computer vision", "data", "analytics", "platform", "infrastructure", "cloud",
+  "devops", "site reliability", "sre", "security", "cybersecurity", "systems",
+  "embedded", "firmware", "robotics", "autonomy", "research", "computer science",
+  "quant", "quantitative", "engineering intern", "technology intern", "tech intern",
+  "product engineer", "solutions engineer", "applied scientist", "research scientist",
+]
+
+# Community lists also tag each posting with a category. Postings in these
+# categories are accepted even if no role keyword matches the title.
+list_categories = ["Software", "Software Engineering", "AI/ML/Data", "Data Science, AI & Machine Learning", "Quant", "Quantitative Finance"]
+
+# Skip any posting whose title contains one of these.
+exclude_keywords = ["phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "manager", "director", "sales", "marketing", "recruiter", "recruiting", "accounting", "legal", "paralegal"]
+
+# Seasons you want. Empty list = any season (Spring, Summer, Fall, Winter, starting now).
+# Example: seasons = ["Summer 2027", "Spring 2027"]
+seasons = []
+
+# Hide postings whose season is already over (e.g. "Summer 2026" once it's October 2026).
+hide_past_seasons = true
+
+[location]
+# Only United States roles are kept.
+allow_remote = true        # keep remote roles (unless they're clearly non-US, e.g. "Remote - Canada")
+allow_unknown = true       # keep postings with no location listed (they're labeled "Location unclear")
+
+[alerts]
+# Phone alerts go through the free ntfy app. Set your topic name as the repo secret NTFY_TOPIC.
+enabled = true
+# Only alert on postings that are actually new: posted within this many days.
+max_age_days = 3
+# More than this many new postings in one scan sends one summary alert instead of one each.
+max_individual_alerts = 8
+
+[sources]
+lists = true        # community internship lists (Simplify, vanshb03): used for discovery and as a backup
+greenhouse = true   # checks company job boards directly (fastest)
+lever = true
+ashby = true
+workday = true
+yc = true           # YC jobs board
+hackernews = true   # Hacker News "Who is hiring?" monthly thread
+
+[boards]
+# Company job boards to always check, on top of the ones the radar finds automatically.
+# Format: "system:board". The board is the part of the company's job-board URL after the domain,
+# e.g. https://job-boards.greenhouse.io/stripe  ->  "greenhouse:stripe"
+#      https://jobs.lever.co/plaid              ->  "lever:plaid"
+#      https://jobs.ashbyhq.com/ramp            ->  "ashby:ramp"
+#      https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite -> "workday:nvidia.wd5/NVIDIAExternalCareerSite"
+always_check = [
+  "greenhouse:stripe", "greenhouse:figma", "greenhouse:databricks", "greenhouse:airbnb",
+  "greenhouse:roblox", "greenhouse:vercel", "greenhouse:scaleai", "greenhouse:khanacademy",
+  "ashby:ramp", "ashby:notion", "ashby:linear", "ashby:supabase", "ashby:replit", "ashby:retool",
+  "lever:plaid",
+  "workday:nvidia.wd5/NVIDIAExternalCareerSite",
+]
+# Boards to never check (e.g. ones that keep erroring).
+skip = []

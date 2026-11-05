@@ -1,0 +1,4 @@
+{"jobs":[
+ {"id":4000,"title":"Software Engineer Intern, Summer 2027","absolute_url":"https://job-boards.greenhouse.io/acme/jobs/4000","location":{"name":"San Francisco, CA; New York, NY"},"updated_at":"2026-11-04T10:00:00-05:00","first_published":"2026-11-04T09:00:00-05:00","company_name":"Acme"},
+ {"id":4001,"title":"Data Intern","absolute_url":"https://acme.com/careers/job","location":{"name":"Remote"},"updated_at":"2026-11-03T10:00:00Z","company_name":"Acme"}
+],"meta":{"total":2}}

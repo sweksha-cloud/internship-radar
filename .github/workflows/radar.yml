@@ -1,0 +1,62 @@
+name: Radar
+
+on:
+  schedule:
+    # Every 3 hours (minute 17 avoids GitHub's busy top-of-the-hour). Change "*/3" to scan more or less often.
+    - cron: "17 */3 * * *"
+  workflow_dispatch: {}   # the "Run workflow" button = manual scan
+
+permissions:
+  contents: write   # save the radar's memory to the radar-state branch
+  pages: write      # publish the page
+  id-token: write
+
+concurrency:
+  group: radar
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Load what the radar has already seen
+        run: |
+          mkdir -p state
+          if git ls-remote --exit-code --heads origin radar-state >/dev/null 2>&1; then
+            git fetch --depth 1 origin radar-state
+            git archive FETCH_HEAD | tar -x -C state
+          fi
+
+      - name: Scan
+        env:
+          NTFY_TOPIC: ${{ secrets.NTFY_TOPIC }}
+        run: python -m radar --state state --site site
+
+      - name: Save what the radar has seen
+        run: |
+          cd state
+          git init -q -b radar-state
+          git add -A
+          git -c user.name="radar-bot" -c user.email="radar-bot@users.noreply.github.com" commit -qm "radar state ${{ github.run_id }}"
+          git push -qf "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git" radar-state
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+
+  publish:
+    needs: scan
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - id: deploy
+        uses: actions/deploy-pages@v4

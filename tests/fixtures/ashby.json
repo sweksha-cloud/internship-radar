@@ -1,0 +1,4 @@
+{"jobs":[
+ {"id":"j1","title":"Software Engineering Intern","location":"New York","secondaryLocations":[{"location":"Remote"}],"isRemote":false,"workplaceType":"Hybrid","publishedAt":"2026-11-04T12:00:00.000+00:00","employmentType":"Intern","jobUrl":"https://jobs.ashbyhq.com/acme/j1","isListed":true,"address":{"postalAddress":{"addressCountry":"United States"}}},
+ {"id":"j2","title":"Hidden Intern","location":"New York","isListed":false,"jobUrl":"https://jobs.ashbyhq.com/acme/j2"}
+]}
