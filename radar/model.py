@@ -94,7 +94,7 @@ def parse_board(url: str) -> tuple[str, str] | None:
     m = _WD_HOST.match(host)
     if m and segs:
         tenant, wd = m.groups()
-        if re.fullmatch(r"[a-z]{2}-[A-Z]{2}", segs[0]):
+        if re.fullmatch(r"[a-z]{2}-[a-z]{2}", segs[0], re.I):
             segs = segs[1:]
         if segs and segs[0] not in ("job", "wday"):
             return ("workday", f"{tenant}.{wd}/{segs[0]}")

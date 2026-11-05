@@ -5,6 +5,7 @@ is just adding its board name, never new code.
 """
 from __future__ import annotations
 
+import threading
 from urllib.parse import quote
 
 from ..http import fetch_json
@@ -101,12 +102,34 @@ def workday_urls(board: str) -> tuple[str, str]:
     return f"{base}/wday/cxs/{tenant}/{site}/jobs", f"{base}/{site}"
 
 
+# Many companies share the same Workday servers (wd1, wd5, ...). Limit how many requests
+# go to each server at once so we don't get rate limited (HTTP 429).
+_WD_LIMIT = 3
+_wd_locks: dict[str, "threading.BoundedSemaphore"] = {}
+_wd_guard = threading.Lock()
+
+
+def _wd_server(board: str) -> str:
+    if board.startswith("site:"):
+        return board[5:].split("/", 1)[0]
+    return board.split("/", 1)[0].split(".", 1)[1]
+
+
+def _wd_slot(board: str):
+    key = _wd_server(board)
+    with _wd_guard:
+        if key not in _wd_locks:
+            _wd_locks[key] = threading.BoundedSemaphore(_WD_LIMIT)
+        return _wd_locks[key]
+
+
 def fetch_workday(board: str, search: str = "intern", pages: int = 2) -> list[Posting]:
     api, prefix = workday_urls(board)
     out: list[Posting] = []
     for page in range(pages):
-        data = fetch_json(api, method="POST", body={
-            "appliedFacets": {}, "limit": 20, "offset": page * 20, "searchText": search})
+        with _wd_slot(board):
+            data = fetch_json(api, method="POST", retries=3, body={
+                "appliedFacets": {}, "limit": 20, "offset": page * 20, "searchText": search})
         batch = parse_workday(board, data, prefix)
         out.extend(batch)
         if len(batch) < 20:

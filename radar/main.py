@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import datetime, timedelta, timezone
@@ -71,6 +72,9 @@ def main(argv=None):
             print(f"[{sid}] {health['sources'][sid]}")
 
     # 2. company job boards, checked directly
+    # drop board names saved by an older version that misread a language code (".../en-us") as the board
+    for b in [b for b in state.meta["boards"] if b.startswith("workday:") and re.search(r"/[a-z]{2}-[a-z]{2}$", b, re.I)]:
+        del state.meta["boards"][b]
     boards = dict(state.meta["boards"])
     for b in settings.always_check:
         boards.setdefault(b, b.split(":", 1)[1].split("/")[0].split(".")[0])

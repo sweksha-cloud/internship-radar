@@ -104,6 +104,8 @@ class UrlIdentity(unittest.TestCase):
                          ("workday", "pae.wd1/amentum_careers"))
         self.assertEqual(parse_board("https://wd5.myworkdaysite.com/recruiting/acme/External/job/X/Intern_R9"),
                          ("workday", "site:wd5/acme/External"))
+        self.assertEqual(parse_board("https://intel.wd1.myworkdayjobs.com/en-us/External/job/X/Intern_JR1"),
+                         ("workday", "intel.wd1/External"))  # lowercase language code is not the board
         self.assertIsNone(parse_board("https://www.metacareers.com/jobs/1"))
 
     def test_same_job_same_key_across_sources(self):
@@ -111,6 +113,11 @@ class UrlIdentity(unittest.TestCase):
                          job_key("https://stripe.com/jobs/search?gh_jid=123"))
         self.assertEqual(job_key("https://copart.wd12.myworkdayjobs.com/copart/job/Dallas-TX/SWE-Intern_JR1"),
                          job_key("https://copart.wd12.myworkdayjobs.com/en-US/copart/job/Dallas-TX/SWE-Intern_JR1/apply"))
+
+    def test_workday_server_grouping(self):
+        self.assertEqual(ats._wd_server("nvidia.wd5/NVIDIAExternalCareerSite"), "wd5")
+        self.assertEqual(ats._wd_server("site:wd3/acme/External"), "wd3")
+        self.assertIs(ats._wd_slot("a.wd5/X"), ats._wd_slot("b.wd5/Y"))
 
     def test_workday_api_urls(self):
         self.assertEqual(ats.workday_urls("nvidia.wd5/NVIDIAExternalCareerSite")[0],

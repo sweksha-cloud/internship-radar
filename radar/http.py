@@ -39,6 +39,14 @@ def fetch(url: str, *, method: str = "GET", body: dict | None = None, headers: d
             if e.code != 429 and e.code < 500:
                 raise FetchError(f"HTTP {e.code}") from e
             last_err = FetchError(f"HTTP {e.code}")
+            if e.code == 429 and attempt < retries:
+                # rate limited: wait as long as the server asks (capped), then try again
+                try:
+                    wait = float(e.headers.get("Retry-After") or 0)
+                except ValueError:
+                    wait = 0
+                time.sleep(min(max(wait, 5.0 * (attempt + 1)), 30))
+                continue
         except Exception as e:  # timeouts, DNS, connection resets
             last_err = FetchError(type(e).__name__ + ": " + str(e)[:120])
         if attempt < retries:
