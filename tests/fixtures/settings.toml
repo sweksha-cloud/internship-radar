@@ -1,0 +1,104 @@
+# Internship Radar settings
+# Edit this file on GitHub (pencil icon) and commit. The next scan uses the new settings.
+# Matching is case-insensitive. Keywords match whole words, so "ml" won't match "html".
+
+[roles]
+# A posting must look like an internship: its title contains at least one of these.
+internship_keywords = ["intern", "interns", "internship", "co-op", "coop", "co op", "apprentice", "apprenticeship"]
+
+# ...and its title must contain at least one of these role keywords.
+# Add or remove anything. To accept every internship regardless of role, set this to [].
+role_keywords = [
+  "software", "swe", "sde", "developer", "programmer", "programming", "coding",
+  "backend", "back-end", "back end", "frontend", "front-end", "front end",
+  "full stack", "full-stack", "fullstack", "web developer", "web development", "web engineer",
+  "mobile", "ios", "android", "app developer",
+  "machine learning", "ml", "ai", "artificial intelligence", "deep learning", "llm", "nlp", "computer vision",
+  "data science", "data scientist", "data engineer", "data engineering",
+  "infrastructure engineer", "site reliability", "sre", "devops", "cloud engineer", "platform engineer",
+  "security engineer", "application security", "cybersecurity", "information security",
+  "embedded software", "embedded engineer", "firmware", "robotics software",
+  "research engineer", "research scientist", "applied scientist", "ai research", "ml research",
+  "quantitative developer", "quant developer", "computer science",
+  "solutions engineer", "forward deployed", "product engineer", "test automation", "sdet",
+]
+
+# Community lists also tag each posting with a category. Postings in these
+# categories are accepted even if no role keyword matches the title.
+list_categories = ["Software", "Software Engineering", "AI/ML/Data", "Data Science, AI & Machine Learning", "Quant", "Quantitative Finance"]
+
+# Skip any posting whose title contains one of these.
+exclude_keywords = [
+  # level / degree
+  "phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "manager", "director",
+  # business roles
+  "sales", "marketing", "recruiter", "recruiting", "accounting", "audit", "tax", "finance", "financial",
+  "risk", "consulting", "legal", "paralegal", "hr", "human resources", "supply chain", "procurement",
+  "operations", "product management", "product manager", "program management", "project management",
+  "business analyst", "trader", "trading", "investment banking",
+  # non-software engineering
+  "hardware", "asic", "silicon", "fpga", "rtl", "electrical", "mechanical", "civil", "chemical",
+  "structural", "environmental", "manufacturing", "industrial", "process engineer", "quality engineer",
+  "mining", "construction", "facilities",
+  # design / content / other
+  "ux", "ui/ux", "graphic", "content", "editorial", "radiology", "clinical", "nursing", "pharmacy",
+]
+
+# Seasons you want. Empty list = any season (Spring, Summer, Fall, Winter, starting now).
+# Example: seasons = ["Summer 2027", "Spring 2027"]
+seasons = []
+
+# Hide postings whose season is already over (e.g. "Summer 2026" once it's October 2026).
+hide_past_seasons = true
+
+[location]
+# United States only. A posting is kept when at least one of its locations is in the US:
+# a US city or state ("San Jose, CA", "Texas"), or remote within the US ("Remote - US", "Remote, United States").
+# Anything only outside the US ("Toronto", "London", "Remote - Canada") is always dropped.
+
+# "Remote" with no country could be anywhere, so it's dropped. Set to true to keep it anyway.
+allow_remote = false
+# Postings that list no location at all could be anywhere, so they're dropped. Set to true to keep them.
+allow_unknown = false
+
+# Places you'd work. Empty = anywhere in the US. Use state codes ("CA"), state names ("Texas"),
+# cities ("Seattle", "New York"), or "Remote". A posting is kept if ANY of its locations is included.
+# Example: include = ["CA", "WA", "NY", "Remote"]
+include = []
+
+# Places you would NOT work. Same format. Example: exclude = ["AL", "Mississippi", "Omaha"]
+exclude = []
+
+[alerts]
+# Phone alerts go through the free ntfy app. Set your topic name as the repo secret NTFY_TOPIC.
+enabled = true
+# Only alert on postings that are actually new: posted within this many days.
+max_age_days = 3
+# More than this many new postings in one scan sends one summary alert instead of one each.
+max_individual_alerts = 8
+
+[sources]
+lists = true        # community internship lists (Simplify, vanshb03): used for discovery and as a backup
+greenhouse = true   # checks company job boards directly (fastest)
+lever = true
+ashby = true
+workday = true
+yc = true           # YC jobs board
+hackernews = true   # Hacker News "Who is hiring?" monthly thread
+
+[boards]
+# Company job boards to always check, on top of the ones the radar finds automatically.
+# Format: "system:board". The board is the part of the company's job-board URL after the domain,
+# e.g. https://job-boards.greenhouse.io/stripe  ->  "greenhouse:stripe"
+#      https://jobs.lever.co/plaid              ->  "lever:plaid"
+#      https://jobs.ashbyhq.com/ramp            ->  "ashby:ramp"
+#      https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite -> "workday:nvidia.wd5/NVIDIAExternalCareerSite"
+always_check = [
+  "greenhouse:stripe", "greenhouse:figma", "greenhouse:databricks", "greenhouse:airbnb",
+  "greenhouse:roblox", "greenhouse:vercel", "greenhouse:scaleai", "greenhouse:khanacademy",
+  "ashby:ramp", "ashby:notion", "ashby:linear", "ashby:supabase", "ashby:replit", "ashby:retool",
+  "lever:plaid",
+  "workday:nvidia.wd5/NVIDIAExternalCareerSite",
+]
+# Boards to never check (e.g. ones that keep erroring).
+skip = []

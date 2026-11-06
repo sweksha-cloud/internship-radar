@@ -4,28 +4,35 @@
 
 [roles]
 # A posting must look like an internship: its title contains at least one of these.
-internship_keywords = ["intern", "interns", "internship", "co-op", "coop", "co op", "apprentice", "apprenticeship"]
+internship_keywords = ["intern", "interns", "internship", "internships", "co-op", "coop", "co op"]
 
 # ...and its title must contain at least one of these role keywords.
 # Add or remove anything. To accept every internship regardless of role, set this to [].
 role_keywords = [
-  "software", "swe", "sde", "developer", "programmer", "programming", "coding",
+  # core software engineering
+  "software", "swe", "sde", "developer", "programmer", "programming",
   "backend", "back-end", "back end", "frontend", "front-end", "front end",
   "full stack", "full-stack", "fullstack", "web developer", "web development", "web engineer",
-  "mobile", "ios", "android", "app developer",
-  "machine learning", "ml", "ai", "artificial intelligence", "deep learning", "llm", "nlp", "computer vision",
-  "data science", "data scientist", "data engineer", "data engineering",
-  "infrastructure engineer", "site reliability", "sre", "devops", "cloud engineer", "platform engineer",
-  "security engineer", "application security", "cybersecurity", "information security",
-  "embedded software", "embedded engineer", "firmware", "robotics software",
-  "research engineer", "research scientist", "applied scientist", "ai research", "ml research",
-  "quantitative developer", "quant developer", "computer science",
-  "solutions engineer", "forward deployed", "product engineer", "test automation", "sdet",
+  "mobile engineer", "mobile developer", "ios engineer", "ios developer", "android engineer", "android developer",
+  "application engineer", "applications engineer", "app developer",
+  # software engineering in related areas
+  "forward deployed", "forward-deployed", "solutions engineer", "product engineer",
+  "ai engineer", "ai engineering", "ai software", "ai/ml engineer", "applied ai", "ai developer",
+  "machine learning engineer", "ml engineer", "ml engineering", "ml infrastructure", "mlops",
+  "infrastructure engineer", "platform engineer", "backend infrastructure",
+  "site reliability", "sre", "devops", "cloud engineer", "systems engineer intern - software",
+  "security engineer", "embedded software", "firmware engineer", "flight software",
+  "sdet", "test automation", "automation engineer", "developer tools", "developer productivity",
+  "application development", "applications development", "development engineer", "agentic",
+  "compiler", "compilers", "distributed systems", "database engineer", "performance engineer",
+  "gameplay", "game engine", "game developer", "graphics engineer", "vr development", "ar/vr", "xr developer",
+  "computer science",
 ]
 
-# Community lists also tag each posting with a category. Postings in these
-# categories are accepted even if no role keyword matches the title.
-list_categories = ["Software", "Software Engineering", "AI/ML/Data", "Data Science, AI & Machine Learning", "Quant", "Quantitative Finance"]
+# Community lists also tag each posting with a category (Software, AI/ML/Data, Quant, Hardware, Product).
+# Postings in these categories are accepted even if no role keyword matches the title.
+# Empty = every posting must match a role keyword (more precise). Example: ["Software"]
+list_categories = []
 
 # Skip any posting whose title contains one of these.
 exclude_keywords = [
@@ -40,6 +47,9 @@ exclude_keywords = [
   "hardware", "asic", "silicon", "fpga", "rtl", "electrical", "mechanical", "civil", "chemical",
   "structural", "environmental", "manufacturing", "industrial", "process engineer", "quality engineer",
   "mining", "construction", "facilities",
+  # not software engineering roles
+  "analyst", "data scientist", "data science", "research scientist", "researcher", "quantitative research",
+  "scientist", "it support", "help desk", "technician",
   # design / content / other
   "ux", "ui/ux", "graphic", "content", "editorial", "radiology", "clinical", "nursing", "pharmacy",
 ]

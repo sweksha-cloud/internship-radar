@@ -14,13 +14,14 @@ FIX = Path(__file__).parent / "fixtures"
 
 
 def settings(**overrides):
-    s = load_settings(ROOT / "settings.toml")
+    s = load_settings(FIX / "settings.toml")
     for k, v in overrides.items():
         setattr(s, k, v)
     return s
 
 
 class TitleFilters(unittest.TestCase):
+    """Uses tests/fixtures/settings.toml, a fixed copy, so editing your real settings never breaks tests."""
     def setUp(self):
         self.m = Matcher(settings())
 
@@ -239,6 +240,13 @@ class StateBehavior(unittest.TestCase):
             self.assertFalse(s2.first_run)
 
 
+class YourSettingsFile(unittest.TestCase):
+    def test_settings_file_is_valid(self):
+        s = load_settings(ROOT / "settings.toml")
+        self.assertTrue(s.internship_keywords, "internship_keywords can't be empty")
+        Matcher(s).title_ok("Software Engineer Intern")
+
+
 class EndToEnd(unittest.TestCase):
     """Runs a full scan with fake sources: the first scan must stay quiet, the second must alert."""
 
@@ -263,7 +271,7 @@ class EndToEnd(unittest.TestCase):
              mock.patch.object(radar_main.yc, "fetch_yc", return_value=[]), \
              mock.patch.object(radar_main.hackernews, "latest_thread_id", return_value=None):
             cfg = Path(d) / "settings.toml"
-            cfg.write_text((ROOT / "settings.toml").read_text().replace('always_check = [', 'always_check = ["greenhouse:acme", ').replace(
+            cfg.write_text((FIX / "settings.toml").read_text().replace('always_check = [', 'always_check = ["greenhouse:acme", ').replace(
                 '"greenhouse:stripe"', '"greenhouse:acme2"'))
             args = ["--state", f"{d}/state", "--site", f"{d}/site", "--settings", str(cfg)]
             radar_main.main(args)
