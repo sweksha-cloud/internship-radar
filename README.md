@@ -49,6 +49,31 @@ The scanner still reads every internship it finds and only applies your settings
 | `[sources]` | Turn whole sources on or off | `workday = false` |
 | `always_check` / `skip` | Company job boards to always check, or never check | `"greenhouse:stripe"` |
 
+### Changing the roles and jobs it looks for
+
+The positions it shows are controlled by two lists in `settings.toml`, under `[roles]`:
+
+- **`role_keywords`:** the kinds of jobs you want. A posting's title must contain at least one of these.
+- **`exclude_keywords`:** words that rule a job out. A title containing any of these is skipped, even if it matched a role keyword.
+
+Each list is words in quotes, separated by commas, inside `[ ]`. Common changes:
+
+| I want to… | Do this |
+| --- | --- |
+| **Add a kind of job** (e.g. game development) | Add it to `role_keywords`: `"game developer", "gameplay",` |
+| **Stop seeing a kind of job** (e.g. firmware) | Delete `"firmware",` from `role_keywords`, **or** add `"firmware",` to `exclude_keywords` |
+| **Only see software engineering** | Set `role_keywords = ["software", "swe", "sde", "developer", "backend", "frontend", "full stack"]` and `list_categories = ["Software", "Software Engineering"]` |
+| **Only see AI / ML** | Set `role_keywords = ["machine learning", "ml", "ai", "deep learning", "llm", "nlp", "computer vision", "data science", "applied scientist", "research scientist"]` and `list_categories = ["AI/ML/Data", "Data Science, AI & Machine Learning"]` |
+| **See every internship, any field** | Set `role_keywords = []` and `list_categories = []`, and trim `exclude_keywords` |
+| **Allow a word that's currently excluded** (e.g. hardware) | Delete `"hardware",` from `exclude_keywords` |
+| **Only certain seasons** | `seasons = ["Summer 2027", "Spring 2027"]` (`[]` = any season) |
+| **Only certain places** | `include = ["CA", "WA", "Remote"]` under `[location]` (`[]` = anywhere in the US) |
+| **Never certain places** | `exclude = ["TX", "Omaha"]` under `[location]` |
+
+`list_categories` matters because the community lists tag each posting with a category (Software, AI/ML/Data, Quant, Hardware, Product). A posting in one of the listed categories is shown even if its title doesn't contain a role keyword. If you narrow `role_keywords`, narrow `list_categories` to match.
+
+**Check your work:** after you commit, the **Tests** workflow under the Actions tab checks that `settings.toml` is still valid. A red ✗ usually means a missing quote, comma or bracket. Then tap **Scan now** to rebuild the page.
+
 Keywords match whole words and ignore case, so `"ml"` matches "ML Intern" but not "HTML". For places, use a state code (`"CA"`), a state name (`"Texas"`), a city (`"Seattle"`) or `"Remote"`. A posting with several locations is kept if any one of them is allowed.
 
 **United States only.** The radar keeps a posting only if at least one of its locations is in the US: a US city or state, or remote within the US ("Remote - US"). Postings only outside the US are always dropped. Postings that say just "Remote" or give no location are dropped too, since they could be anywhere. Set `allow_remote` or `allow_unknown` to `true` to keep them.

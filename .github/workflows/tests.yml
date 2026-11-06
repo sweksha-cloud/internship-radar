@@ -2,7 +2,7 @@ name: Tests
 
 on:
   push:
-    paths-ignore: ["settings.toml", "README.md"]
+    paths-ignore: ["README.md"]
   pull_request: {}
 
 permissions:
