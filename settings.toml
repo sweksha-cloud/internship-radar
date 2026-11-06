@@ -52,9 +52,14 @@ seasons = []
 hide_past_seasons = true
 
 [location]
-# Only United States roles are kept.
-allow_remote = true        # keep remote roles (unless they're clearly non-US, e.g. "Remote - Canada")
-allow_unknown = true       # keep postings with no location listed (they're labeled "Location unclear")
+# United States only. A posting is kept when at least one of its locations is in the US:
+# a US city or state ("San Jose, CA", "Texas"), or remote within the US ("Remote - US", "Remote, United States").
+# Anything only outside the US ("Toronto", "London", "Remote - Canada") is always dropped.
+
+# "Remote" with no country could be anywhere, so it's dropped. Set to true to keep it anyway.
+allow_remote = false
+# Postings that list no location at all could be anywhere, so they're dropped. Set to true to keep them.
+allow_unknown = false
 
 # Places you'd work. Empty = anywhere in the US. Use state codes ("CA"), state names ("Texas"),
 # cities ("Seattle", "New York"), or "Remote". A posting is kept if ANY of its locations is included.
