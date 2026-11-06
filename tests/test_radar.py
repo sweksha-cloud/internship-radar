@@ -27,11 +27,12 @@ class TitleFilters(unittest.TestCase):
     def test_accepts_software_internships_of_any_kind(self):
         for t in ["Software Engineer Intern", "SWE Intern - Summer 2027", "Machine Learning Co-op (Spring 2027)",
                   "Backend Engineering Internship", "Data Science Intern", "Winter 2027 Software Co-Op",
-                  "AI Research Intern", "Engineering Intern"]:
+                  "AI Research Intern", "Software Development Engineer in Test Intern"]:
             self.assertTrue(self.m.title_ok(t), t)
 
     def test_rejects_non_internships_and_excluded(self):
         for t in ["Senior Software Engineer", "Internal Tools Engineer", "PhD Research Intern",
+                  "Civil Engineering Intern", "Finance Reporting & Analytics Intern", "Hardware Engineering Intern",
                   "Marketing Intern", "Sales Intern", "Software Engineering Manager"]:
             self.assertFalse(self.m.title_ok(t), t)
 
@@ -45,7 +46,7 @@ class TitleFilters(unittest.TestCase):
 
     def test_empty_role_list_accepts_every_internship(self):
         m = Matcher(settings(role_keywords=[]))
-        self.assertTrue(m.title_ok("Operations Intern"))
+        self.assertTrue(m.title_ok("Biology Lab Intern"))
 
     def test_seasons(self):
         m = Matcher(settings(seasons=["Summer 2027"]))
@@ -87,6 +88,20 @@ class Locations(unittest.TestCase):
         for locs in [["Toronto, ON"], ["London, United Kingdom"], ["Bengaluru, India"], ["Remote - Canada"],
                      ["Berlin"], ["Vancouver, BC"]]:
             self.assertEqual(us_verdict(locs), "non_us", locs)
+
+    def test_include_and_exclude_places(self):
+        m = Matcher(settings(include_places=["CA", "WA", "Remote"]))
+        self.assertTrue(m.location_ok(["San Jose, CA"])[0])
+        self.assertTrue(m.location_ok(["SF"])[0])                  # shorthand city counts as CA
+        self.assertTrue(m.location_ok(["Austin, TX", "Seattle, WA"])[0])  # any one location is enough
+        self.assertTrue(m.location_ok(["Remote - US"])[0])
+        self.assertFalse(m.location_ok(["Mequon, WI"])[0])
+        self.assertFalse(m.location_ok(["Washington, DC"])[0])     # DC is not WA
+        m = Matcher(settings(exclude_places=["WI", "Texas"]))
+        self.assertFalse(m.location_ok(["Mequon, WI"])[0])
+        self.assertFalse(m.location_ok(["Austin, Texas"])[0])
+        self.assertTrue(m.location_ok(["Austin, TX", "New York, NY"])[0])  # NY location still OK
+        self.assertTrue(m.location_ok(["Palo Alto, CA"])[0])
 
     def test_settings_switches(self):
         m = Matcher(settings(allow_remote=False))

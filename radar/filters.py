@@ -17,6 +17,8 @@ class Settings:
     allow_remote: bool = True
     allow_unknown: bool = True
     hide_past_seasons: bool = True
+    include_places: list = field(default_factory=list)
+    exclude_places: list = field(default_factory=list)
     alerts_enabled: bool = True
     max_age_days: float = 3
     max_individual_alerts: int = 8
@@ -44,6 +46,8 @@ def load_settings(path: str | Path) -> Settings:
         hide_past_seasons=roles.get("hide_past_seasons", True),
         allow_remote=loc.get("allow_remote", True),
         allow_unknown=loc.get("allow_unknown", True),
+        include_places=loc.get("include", []),
+        exclude_places=loc.get("exclude", []),
         alerts_enabled=alerts.get("enabled", True),
         max_age_days=alerts.get("max_age_days", 3),
         max_individual_alerts=alerts.get("max_individual_alerts", 8),
@@ -98,6 +102,9 @@ class Matcher:
     def location_ok(self, locations: list[str], remote_flag: bool | None = None) -> tuple[bool, str]:
         """Returns (keep, label) where label is 'US', 'Remote', or 'Unclear'."""
         verdict = us_verdict(locations, remote_flag)
+        if verdict in ("us", "remote") and (self.s.include_places or self.s.exclude_places):
+            if not places_ok(locations, remote_flag, self.s.include_places, self.s.exclude_places):
+                return False, "Excluded place"
         if verdict == "us":
             return True, "US"
         if verdict == "remote":
@@ -230,3 +237,52 @@ def us_verdict(locations: list[str], remote_flag: bool | None = None) -> str:
     if remote_flag and "non_us" not in verdicts:
         return "remote"
     return "unknown" if "non_us" not in verdicts else "non_us"
+
+
+# ---- include / exclude places ----------------------------------------------------
+
+STATE_NAME_BY_CODE = dict(zip(sorted(US_STATES - {"DC", "PR"}), [
+    "alaska", "alabama", "arkansas", "arizona", "california", "colorado", "connecticut", "delaware",
+    "florida", "georgia", "hawaii", "iowa", "idaho", "illinois", "indiana", "kansas", "kentucky",
+    "louisiana", "massachusetts", "maryland", "maine", "michigan", "minnesota", "missouri", "mississippi",
+    "montana", "north carolina", "north dakota", "nebraska", "new hampshire", "new jersey", "new mexico",
+    "nevada", "new york", "ohio", "oklahoma", "oregon", "pennsylvania", "rhode island", "south carolina",
+    "south dakota", "tennessee", "texas", "utah", "virginia", "vermont", "washington", "wisconsin",
+    "west virginia", "wyoming"]))
+STATE_NAME_BY_CODE.update({"DC": "district of columbia", "PR": "puerto rico"})
+# shorthand cities that lists use without a state
+CITY_STATE = {"sf": "CA", "south sf": "CA", "la": "CA", "bay area": "CA", "silicon valley": "CA",
+              "nyc": "NY", "seattle": "WA", "boston": "MA", "austin": "TX", "chicago": "IL"}
+
+
+def _place_matches(loc: str, place: str) -> bool:
+    p = place.strip()
+    if not p:
+        return False
+    low = loc.lower()
+    if p.lower() == "remote":
+        return bool(_REMOTE_RE.search(low))
+    if len(p) == 2 and p.isalpha():            # a state code like "CA"
+        code = p.upper()
+        if re.search(rf"(?:,\s*|\bUS-){code}\b", loc):
+            return True
+        name = STATE_NAME_BY_CODE.get(code)
+        other_code = any(m.group(1) != code and m.group(1) in US_STATES for m in _STATE_CODE_RE.finditer(loc))
+        if name and not other_code and re.search(rf"(?<![a-z]){re.escape(name)}(?![a-z])", low):
+            return True   # e.g. "Seattle, Washington", but not "Washington, DC"
+        return CITY_STATE.get(low.strip()) == code
+    return re.search(rf"(?<![a-z]){re.escape(p.lower())}(?![a-z])", low) is not None
+
+
+def places_ok(locations: list[str], remote_flag, include: list[str], exclude: list[str]) -> bool:
+    """Keep a posting if at least one of its locations is included (or include is empty)
+    and that location isn't excluded. Remote counts as the place "Remote"."""
+    locs = [l for l in (locations or []) if l and l.strip()] or (["Remote"] if remote_flag else [])
+    if not locs:
+        return True
+    for loc in locs:
+        if exclude and any(_place_matches(loc, x) for x in exclude):
+            continue
+        if not include or any(_place_matches(loc, x) for x in include):
+            return True
+    return False

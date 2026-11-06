@@ -171,7 +171,9 @@ def _workday_posted(text: str | None) -> str | None:
         if not m:
             return None
         days = int(m.group(1))
-    return (now - timedelta(days=days)).isoformat()
+    # Workday only gives the day, so store midnight UTC; the page shows it as "today"/"N days ago"
+    day = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0)
+    return day.isoformat()
 
 
 FETCHERS = {

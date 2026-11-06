@@ -11,13 +11,16 @@ internship_keywords = ["intern", "interns", "internship", "co-op", "coop", "co o
 role_keywords = [
   "software", "swe", "sde", "developer", "programmer", "programming", "coding",
   "backend", "back-end", "back end", "frontend", "front-end", "front end",
-  "full stack", "full-stack", "fullstack", "web", "mobile", "ios", "android",
-  "machine learning", "ml", "ai", "artificial intelligence", "deep learning", "llm", "nlp",
-  "computer vision", "data", "analytics", "platform", "infrastructure", "cloud",
-  "devops", "site reliability", "sre", "security", "cybersecurity", "systems",
-  "embedded", "firmware", "robotics", "autonomy", "research", "computer science",
-  "quant", "quantitative", "engineering intern", "technology intern", "tech intern",
-  "product engineer", "solutions engineer", "applied scientist", "research scientist",
+  "full stack", "full-stack", "fullstack", "web developer", "web development", "web engineer",
+  "mobile", "ios", "android", "app developer",
+  "machine learning", "ml", "ai", "artificial intelligence", "deep learning", "llm", "nlp", "computer vision",
+  "data science", "data scientist", "data engineer", "data engineering",
+  "infrastructure engineer", "site reliability", "sre", "devops", "cloud engineer", "platform engineer",
+  "security engineer", "application security", "cybersecurity", "information security",
+  "embedded software", "embedded engineer", "firmware", "robotics software",
+  "research engineer", "research scientist", "applied scientist", "ai research", "ml research",
+  "quantitative developer", "quant developer", "computer science",
+  "solutions engineer", "forward deployed", "product engineer", "test automation", "sdet",
 ]
 
 # Community lists also tag each posting with a category. Postings in these
@@ -25,7 +28,21 @@ role_keywords = [
 list_categories = ["Software", "Software Engineering", "AI/ML/Data", "Data Science, AI & Machine Learning", "Quant", "Quantitative Finance"]
 
 # Skip any posting whose title contains one of these.
-exclude_keywords = ["phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "manager", "director", "sales", "marketing", "recruiter", "recruiting", "accounting", "legal", "paralegal"]
+exclude_keywords = [
+  # level / degree
+  "phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "manager", "director",
+  # business roles
+  "sales", "marketing", "recruiter", "recruiting", "accounting", "audit", "tax", "finance", "financial",
+  "risk", "consulting", "legal", "paralegal", "hr", "human resources", "supply chain", "procurement",
+  "operations", "product management", "product manager", "program management", "project management",
+  "business analyst", "trader", "trading", "investment banking",
+  # non-software engineering
+  "hardware", "asic", "silicon", "fpga", "rtl", "electrical", "mechanical", "civil", "chemical",
+  "structural", "environmental", "manufacturing", "industrial", "process engineer", "quality engineer",
+  "mining", "construction", "facilities",
+  # design / content / other
+  "ux", "ui/ux", "graphic", "content", "editorial", "radiology", "clinical", "nursing", "pharmacy",
+]
 
 # Seasons you want. Empty list = any season (Spring, Summer, Fall, Winter, starting now).
 # Example: seasons = ["Summer 2027", "Spring 2027"]
@@ -38,6 +55,14 @@ hide_past_seasons = true
 # Only United States roles are kept.
 allow_remote = true        # keep remote roles (unless they're clearly non-US, e.g. "Remote - Canada")
 allow_unknown = true       # keep postings with no location listed (they're labeled "Location unclear")
+
+# Places you'd work. Empty = anywhere in the US. Use state codes ("CA"), state names ("Texas"),
+# cities ("Seattle", "New York"), or "Remote". A posting is kept if ANY of its locations is included.
+# Example: include = ["CA", "WA", "NY", "Remote"]
+include = []
+
+# Places you would NOT work. Same format. Example: exclude = ["AL", "Mississippi", "Omaha"]
+exclude = []
 
 [alerts]
 # Phone alerts go through the free ntfy app. Set your topic name as the repo secret NTFY_TOPIC.
