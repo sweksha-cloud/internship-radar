@@ -191,6 +191,30 @@ class Parsers(unittest.TestCase):
         self.assertEqual((ps[0].company, ps[0].title), ("Beta", "ML Intern"))
 
 
+class YCLabels(unittest.TestCase):
+    def setUp(self):
+        from radar.sources.yc_directory import build_index
+        self.idx = build_index([
+            {"name": "Stripe", "slug": "stripe", "website": "https://stripe.com", "batch": "Summer 2009", "team_size": 7000, "status": "Public"},
+            {"name": "Voyager", "slug": "voyager-2", "website": "https://voyager.dev", "batch": "Fall 2026", "team_size": 6, "status": "Active"},
+            {"name": "Exa", "slug": "exa", "website": "https://exa.ai", "batch": "Summer 2021", "team_size": 75, "status": "Active"},
+            {"name": "Rarebird", "former_names": ["Revel"], "slug": "rarebird", "batch": "Summer 2020", "team_size": 5, "status": "Active"},
+            {"name": "Gone", "slug": "gone", "batch": "Winter 2010", "team_size": 1, "status": "Inactive"},
+        ])
+
+    def test_labels(self):
+        from radar.sources.yc_directory import lookup, short_batch
+        self.assertEqual(short_batch("Spring 2025"), "X25")
+        self.assertEqual(lookup(self.idx, "Stripe")["b"], "S09")                   # big: name is enough
+        self.assertEqual(lookup(self.idx, "Exa", "ashby:exa")["b"], "S21")         # small: board confirms
+        self.assertIsNone(lookup(self.idx, "Voyager Technologies", "greenhouse:voyagertechnologiesinc"))
+        self.assertIsNone(lookup(self.idx, "Exa", "greenhouse:exaconsulting"))   # same name, other company
+        self.assertIsNone(lookup(self.idx, "Exa"))                                # nothing to confirm with
+        self.assertIsNone(lookup(self.idx, "Revel", "ashby:revel"))               # former names don't count
+        self.assertIsNone(lookup(self.idx, "Gone", "ashby:gone"))                 # inactive companies skipped
+        self.assertEqual(lookup(self.idx, "Exa", url="https://jobs.ashbyhq.com/exa/123")["b"], "S21")
+
+
 class StateBehavior(unittest.TestCase):
     def p(self, url="https://job-boards.greenhouse.io/acme/jobs/1", title="Software Intern", source="greenhouse"):
         return Posting(company="Acme", title=title, url=url, source=source, locations=["Austin, TX"])

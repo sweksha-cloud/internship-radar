@@ -13,7 +13,7 @@ from .filters import Matcher, load_settings
 from .model import now_iso
 from .notify import send_alerts
 from .page import build_page
-from .sources import hackernews, lists, yc
+from .sources import hackernews, lists, yc, yc_directory
 from .sources.ats import FETCHERS
 from .state import BROAD_INTERN_RE, State
 
@@ -146,7 +146,27 @@ def main(argv=None):
             health["sources"]["hackernews"] = {"ok": False, "error": str(e)[:200]}
         print(f"[hackernews] {health['sources']['hackernews']}")
 
-    # 5. closed postings, alerts, page
+    # 5. YC company directory (labels postings from YC-backed startups)
+    yc_index = {}
+    yc_file = state.folder / "yc_index.json"
+    if yc_file.exists():
+        try:
+            yc_index = json.loads(yc_file.read_text())
+        except ValueError:
+            yc_index = {}
+    if settings.source_on("yc"):
+        try:
+            fresh, etag = yc_directory.fetch_directory(state.meta.get("yc_etag") if yc_index else None)
+            state.meta["yc_etag"] = etag
+            if fresh is not None:
+                yc_index = fresh
+                yc_file.write_text(json.dumps(yc_index, separators=(",", ":")))
+            health["sources"]["yc_directory"] = {"ok": True, "note": f"{len(yc_index)} YC company names"}
+        except Exception as e:
+            health["sources"]["yc_directory"] = {"ok": False, "error": str(e)[:200]}
+        print(f"[yc_directory] {health['sources']['yc_directory']}")
+
+    # 6. closed postings, alerts, page
     state.mark_closed(checked_ok, run_ts)
     state.prune()
     state.meta["runs"] += 1
@@ -181,7 +201,7 @@ def main(argv=None):
     (state.folder / "health.json").write_text(json.dumps(health, indent=1))
     state.save()
 
-    shown = build_page(state, matcher, settings, health, args.site, repo)
+    shown = build_page(state, matcher, settings, health, args.site, repo, yc_index)
     print(f"done in {health['duration_s']}s: {len(new_keys)} new, {len(alerts)} match your settings, "
           f"{sent} alerts sent, {shown} postings on the page")
     gh_out = os.environ.get("GITHUB_OUTPUT")

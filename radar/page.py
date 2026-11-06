@@ -10,8 +10,9 @@ PAGE_DAYS = 60
 PAGE_LIMIT = 5000
 
 
-def build_page(state, matcher, settings, health, site_dir, repo: str) -> int:
+def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: dict | None = None) -> int:
     from .main import matches  # avoid a circular import at module load
+    from .sources.yc_directory import lookup
 
     cutoff = (datetime.now(timezone.utc) - timedelta(days=PAGE_DAYS)).isoformat()
     rows = []
@@ -21,6 +22,10 @@ def build_page(state, matcher, settings, health, site_dir, repo: str) -> int:
         if not matches(matcher, r):
             continue
         sources = sorted(r.get("first_seen_by", r.get("seen_by", {})).items(), key=lambda kv: kv[1])
+        source_ids = [s for s, _ in sources]
+        yc_hit = lookup(yc_index or {}, r["company"], r.get("board"), r.get("url"))
+        from_yc_board = "yc" in source_ids
+        from_hn = any(s.startswith("hn:") for s in source_ids)
         rows.append({
             "k": k,
             "c": r["company"], "t": r["title"], "u": r["url"],
@@ -30,10 +35,15 @@ def build_page(state, matcher, settings, health, site_dir, repo: str) -> int:
             # "e" = when it really appeared: the company's posting date if that's earlier than when we found it
             # (a list re-adding a months-old posting shouldn't look new)
             "e": min(r["first_seen"], r["posted_at"]) if r.get("posted_at") else r["first_seen"],
-            "src": [label(s) for s, _ in sources],
+            "src": [label(s) for s in source_ids],
+            # YC batch (e.g. "W24") if the company is in YC's directory, "YC" if found on YC's jobs board
+            "yc": (yc_hit or {}).get("b") or ("YC" if from_yc_board else "") ,
+            "ycu": (yc_hit or {}).get("u") or "",
+            # startup = YC company, or found on YC's jobs board or Hacker News "Who is hiring?"
+            "st": bool(yc_hit or from_yc_board or from_hn),
         })
-    # newest first; postings that were already open when the radar started go by posting date
-    rows.sort(key=lambda x: (x["e"] if not x["q"] else (x["p"] or "0")), reverse=True)
+    # newest posted first ("e" = the company's posting date, or when the radar found it if earlier/unknown)
+    rows.sort(key=lambda x: x["e"], reverse=True)
     rows = rows[:PAGE_LIMIT]
 
     links = {
@@ -61,9 +71,9 @@ def label(source_id: str) -> str:
     if source_id.startswith("list:"):
         return "List: " + source_id[5:]
     if source_id.startswith("hn:"):
-        return "Hacker News"
+        return "HN Who's hiring"
     if source_id == "yc":
-        return "YC"
+        return "YC jobs board"
     system = source_id.split(":", 1)[0]
     return {"greenhouse": "Greenhouse", "lever": "Lever", "ashby": "Ashby", "workday": "Workday"}.get(system, system)
 
@@ -103,6 +113,9 @@ label.tog{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut
 .c{color:var(--muted);font-size:14px}
 .meta{grid-column:1/-1;display:flex;gap:6px;flex-wrap:wrap;font-size:12px;color:var(--muted)}
 .chip{background:var(--chip);border-radius:999px;padding:2px 8px}
+.yc,.st{display:inline-block;font-size:11px;font-weight:700;border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:1px}
+.yc{background:#f26522;color:#fff}
+.st{background:var(--chip);color:var(--accent);border:1px solid var(--accent)}
 .when{text-align:right;font-size:12px;color:var(--muted);white-space:nowrap}
 .row.done{opacity:.55}
 .row.done .t{text-decoration:line-through}
@@ -133,7 +146,9 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   <input type="search" id="q" placeholder="Search company, title, location…">
   <select id="src"><option value="">All sources</option></select>
   <select id="loc"><option value="">All locations</option><option>US</option><option>Remote</option><option>Unclear</option></select>
-  <select id="age"><option value="">Any time</option><option value="1">Found in last 24 hrs</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option></select>
+  <select id="sort"><option value="e">Newest posted first</option><option value="f">Newest found first</option></select>
+  <select id="age"><option value="">Posted any time</option><option value="1">Posted in last 24 hrs</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option></select>
+  <select id="kind"><option value="">All companies</option><option value="yc">YC companies only</option><option value="st">Startups only (YC + HN)</option></select>
   <label class="tog"><input type="checkbox" id="onlynew"> New since my last visit</label>
   <label class="tog"><input type="checkbox" id="showdone"> Show done</label>
 </div>
@@ -161,14 +176,16 @@ function isNew(r){return !r.q&&lastVisit&&r.f>lastVisit&&(Date.now()-new Date(r.
 function render(){
   const q=$('q').value.toLowerCase(),src=$('src').value,loc=$('loc').value,age=+$('age').value,onlyNew=$('onlynew').checked,showDone=$('showdone').checked;
   const cutoff=age?new Date(Date.now()-age*86400000).toISOString():'';
-  const rows=D.rows.filter(r=>(showDone||!done[r.k])&&(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||(!r.q&&r.e>=cutoff))&&(!onlyNew||isNew(r)));
+  const kind=$('kind').value,sortBy=$('sort').value;
+  const rows=D.rows.filter(r=>(showDone||!done[r.k])&&(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||r.e>=cutoff)&&(!onlyNew||isNew(r))&&(!kind||(kind==='yc'?!!r.yc:r.st)));
+  if(sortBy==='f')rows.sort((a,b)=>a.f<b.f?1:a.f>b.f?-1:(a.e<b.e?1:-1));
   const newCount=D.rows.filter(r=>isNew(r)&&!done[r.k]).length;
   const doneCount=D.rows.filter(r=>done[r.k]).length;
-  $('stats').innerHTML=`<div class="stat"><b>${D.rows.length-doneCount}</b><span>open, not done</span></div><div class="stat"><b>${lastVisit?newCount:'—'}</b><span>new since last visit</span></div><div class="stat"><b>${doneCount}</b><span>marked done</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
-  $('list').innerHTML=rows.length?rows.slice(0,800).map(r=>`<div class="row${isNew(r)?' isnew':''}${done[r.k]?' done':''}"><div><a class="t" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> ${isNew(r)&&!done[r.k]?'<span class="badge">NEW</span>':''}<div class="c">${esc(r.c)}</div></div><div class="when">${r.q?'found on first check':'found '+ago(r.f)}${r.p?'<br>'+posted(r.p):''}<br><button class="donebtn" data-k="${esc(r.k)}">${done[r.k]?'✓ Done (undo)':'Mark done'}</button></div><div class="meta">${r.l?`<span class="chip">📍 ${esc(r.l)}</span>`:`<span class="chip">📍 ${esc(r.ll)}</span>`}${r.s?`<span class="chip">🗓 ${esc(r.s)}</span>`:''}${r.src.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</div></div>`).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
+  $('stats').innerHTML=`<div class="stat"><b>${D.rows.length-doneCount}</b><span>open, not done</span></div><div class="stat"><b>${lastVisit?newCount:'—'}</b><span>new since last visit</span></div><div class="stat"><b>${D.rows.filter(r=>r.yc&&!done[r.k]).length}</b><span>at YC companies</span></div><div class="stat"><b>${doneCount}</b><span>marked done</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
+  $('list').innerHTML=rows.length?rows.slice(0,800).map(r=>`<div class="row${isNew(r)?' isnew':''}${done[r.k]?' done':''}"><div><a class="t" href="${esc(r.u)}" target="_blank" rel="noopener">${esc(r.t)}</a> ${isNew(r)&&!done[r.k]?'<span class="badge">NEW</span>':''}<div class="c">${esc(r.c)}${r.yc?(r.ycu?`<a class="yc" href="${esc(r.ycu)}" target="_blank" rel="noopener" style="text-decoration:none">YC ${r.yc==='YC'?'':esc(r.yc)}</a>`:`<span class="yc">YC</span>`):(r.st?'<span class="st">Startup</span>':'')}</div></div><div class="when">${r.p?'<b>'+posted(r.p)+'</b><br>':''}${r.q?'found on first check':'found '+ago(r.f)}<br><button class="donebtn" data-k="${esc(r.k)}">${done[r.k]?'✓ Done (undo)':'Mark done'}</button></div><div class="meta">${r.l?`<span class="chip">📍 ${esc(r.l)}</span>`:`<span class="chip">📍 ${esc(r.ll)}</span>`}${r.s?`<span class="chip">🗓 ${esc(r.s)}</span>`:''}${r.src.map(s=>`<span class="chip">${esc(s)}</span>`).join('')}</div></div>`).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
 }
 $('list').addEventListener('click',e=>{const b=e.target.closest('.donebtn');if(!b)return;const k=b.dataset.k;if(done[k])delete done[k];else done[k]=new Date().toISOString();saveDone();render()});
-['q','src','loc','age','onlynew','showdone'].forEach(id=>$(id).addEventListener('input',render));
+['q','src','loc','age','onlynew','showdone','kind','sort'].forEach(id=>$(id).addEventListener('input',render));
 $('seen').onclick=()=>{lastVisit=new Date().toISOString();try{localStorage.setItem('radarLastVisit',lastVisit)}catch(e){};render()};
 if(!lastVisit){try{localStorage.setItem('radarLastVisit',new Date().toISOString())}catch(e){}}
 const S=D.summary;

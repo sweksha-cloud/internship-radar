@@ -12,6 +12,7 @@ Community internship lists are great but can lag behind companies by hours or da
 | Company job boards on **Workday** | The JSON endpoint Workday's own careers pages use |
 | **Community lists** (Simplify, vanshb03) | Every posting link reveals a company's job board, so the radar finds ~2,000 boards automatically. The lists are also a backup source of postings. |
 | **YC jobs board** | The public ycombinator.com/jobs pages |
+| **YC company directory** | The open [yc-oss/api](https://github.com/yc-oss/api) dataset (a daily mirror of ycombinator.com/companies), used to label postings from YC companies |
 | **Hacker News "Who is hiring?"** | The official Hacker News API. Only new comments are read each scan. |
 
 One connector per job system covers every company that uses it, so adding a company never needs new code. Companies on fully custom careers sites (Google, Meta, Apple, Microsoft, Amazon…) are covered through the lists. For those, also turn on each company's own job alerts.
@@ -19,6 +20,8 @@ One connector per job system covers every company that uses it, so adding a comp
 ## Using it
 
 - **The page:** `https://<your-username>.github.io/internship-radar/`. Newest first, with search, filters, and a "New since my last visit" toggle.
+- **Newest first:** postings are sorted by when the company posted them (or when the radar found them, if the company doesn't say). Switch to **Newest found first** to see what the radar picked up most recently, and use **Posted in last 24 hrs / 3 / 7 / 14 days** to see only recent ones.
+- **Startup labels:** an orange **YC W24**-style badge means the company is in YC's company directory (it links to the company's YC page). A **Startup** badge means it came from the Hacker News "Who is hiring?" thread. Use **YC companies only** or **Startups only (YC + HN)** to filter. Smaller YC companies are only labeled when their job board confirms it's the same company, so a big company that shares a name with a tiny YC startup isn't mislabeled. Some real YC companies may go unlabeled as a result.
 - **Mark done:** each posting has a **Mark done** button (for ones you applied to or don't want). Done postings are hidden, never deleted. Turn on **Show done** to see them again or undo. Done marks are saved in your browser, so your phone and laptop keep separate lists. Postings stay on the page for 60 days unless the company takes them down.
 - **Scan now:** the page's **Scan now** button opens the workflow. Click **Run workflow**. (The GitHub mobile app can do this too: repo → Actions → Radar → Run workflow.)
 - **Change what it looks for:** see [Choosing what it searches for](#choosing-what-it-searches-for) below.
