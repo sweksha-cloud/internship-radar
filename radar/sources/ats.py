@@ -12,8 +12,8 @@ from ..http import fetch_json
 from ..model import Posting, ts_to_iso
 
 
-def fetch_greenhouse(board: str) -> list[Posting]:
-    data = fetch_json(f"https://boards-api.greenhouse.io/v1/boards/{quote(board)}/jobs")
+def fetch_greenhouse(board: str, retries: int = 2) -> list[Posting]:
+    data = fetch_json(f"https://boards-api.greenhouse.io/v1/boards/{quote(board)}/jobs", retries=retries, timeout=15 if retries == 0 else 20)
     return parse_greenhouse(board, data)
 
 
@@ -38,8 +38,8 @@ def parse_greenhouse(board: str, data: dict) -> list[Posting]:
     return out
 
 
-def fetch_lever(board: str) -> list[Posting]:
-    data = fetch_json(f"https://api.lever.co/v0/postings/{quote(board)}?mode=json")
+def fetch_lever(board: str, retries: int = 2) -> list[Posting]:
+    data = fetch_json(f"https://api.lever.co/v0/postings/{quote(board)}?mode=json", retries=retries, timeout=15 if retries == 0 else 20)
     return parse_lever(board, data)
 
 
@@ -62,8 +62,8 @@ def parse_lever(board: str, data: list) -> list[Posting]:
     return out
 
 
-def fetch_ashby(board: str) -> list[Posting]:
-    data = fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{quote(board)}")
+def fetch_ashby(board: str, retries: int = 2) -> list[Posting]:
+    data = fetch_json(f"https://api.ashbyhq.com/posting-api/job-board/{quote(board)}", retries=retries, timeout=15 if retries == 0 else 20)
     return parse_ashby(board, data)
 
 
@@ -174,6 +174,23 @@ def _workday_posted(text: str | None) -> str | None:
     # Workday only gives the day, so store midnight UTC; the page shows it as "today"/"N days ago"
     day = (now - timedelta(days=days)).replace(hour=0, minute=0, second=0)
     return day.isoformat()
+
+
+def workday_detail_locations(board: str, url: str) -> list[str]:
+    """Real locations for a Workday posting that only says "2 Locations" (reads the posting's details)."""
+    api, prefix = workday_urls(board)
+    if not url.startswith(prefix):
+        return []
+    detail_api = api[: -len("/jobs")] + url[len(prefix):]
+    with _wd_slot(board):
+        data = fetch_json(detail_api, retries=1)
+    info = data.get("jobPostingInfo") or {}
+    locs = [info.get("location")] + list(info.get("additionalLocations") or [])
+    locs = [l for l in locs if l]
+    country = (info.get("country") or {}).get("descriptor")
+    if country and not any(country in l for l in locs):
+        locs.append(country)
+    return locs
 
 
 FETCHERS = {

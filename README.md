@@ -12,10 +12,11 @@ Community internship lists are great but can lag behind companies by hours or da
 | Company job boards on **Workday** | The JSON endpoint Workday's own careers pages use |
 | **Community lists** (Simplify, vanshb03) | Every posting link reveals a company's job board, so the radar finds ~2,000 boards automatically. The lists are also a backup source of postings. |
 | **YC jobs board** | The public ycombinator.com/jobs pages |
+| **Hiring YC startups** | YC's directory lists ~1,400 hiring US startups. The radar looks up each one's Ashby, Greenhouse or Lever job board by its YC name and website (a few hundred per scan, then rechecked every 2–4 weeks) and checks the boards it finds like any other company. Startups that only post on YC's Work at a Startup (login required) can't be reached. |
 | **YC company directory** | The open [yc-oss/api](https://github.com/yc-oss/api) dataset (a daily mirror of ycombinator.com/companies), used to label postings from YC companies |
 | **Hacker News "Who is hiring?"** | The official Hacker News API. Only new comments are read each scan. |
 
-One connector per job system covers every company that uses it, so adding a company never needs new code. Companies on fully custom careers sites (Google, Meta, Apple, Microsoft, Amazon…) are covered through the lists. For those, also turn on each company's own job alerts.
+One connector per job system covers every company that uses it, so adding a company never needs new code. Workday postings that only say "2 Locations" are looked up once to get the real cities, so US roles aren't dropped. Companies on fully custom careers sites (Google, Meta, Apple, Microsoft, Amazon…) are covered through the lists. For those, also turn on each company's own job alerts.
 
 ## Using it
 

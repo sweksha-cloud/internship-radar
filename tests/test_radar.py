@@ -215,6 +215,56 @@ class YCLabels(unittest.TestCase):
         self.assertEqual(lookup(self.idx, "Exa", url="https://jobs.ashbyhq.com/exa/123")["b"], "S21")
 
 
+class YCBoardFinder(unittest.TestCase):
+    def test_candidates_and_probe(self):
+        from radar.sources.yc_directory import board_candidates, probe_company
+        c = {"n": "Exa Labs", "s": "exa-labs", "w": "exa"}
+        self.assertEqual(board_candidates(c), ["exa-labs", "exalabs", "exa"])
+        calls = []
+
+        def ashby(board, **kw):
+            calls.append(("ashby", board))
+            if board == "exa":
+                return ["job"]
+            raise OSError("404")
+
+        def empty(board, **kw):
+            calls.append(("other", board))
+            return []   # a board with no open jobs doesn't count
+
+        boards, n = probe_company(c, {"ashby": ashby, "greenhouse": empty, "lever": empty})
+        self.assertEqual(boards, ["ashby:exa"])
+        self.assertEqual(n, len(calls))
+
+
+class WorkdayLocations(unittest.TestCase):
+    def test_vague_locations_replaced_once(self):
+        from radar.state import _vague
+        self.assertTrue(_vague(["2 Locations"]))
+        self.assertFalse(_vague(["Austin, TX"]))
+        with tempfile.TemporaryDirectory() as d:
+            s = State(d)
+            p = Posting(company="Acme", title="Software Intern", url="https://acme.wd5.myworkdayjobs.com/X/job/Y/SWE_R1",
+                        source="workday", locations=["2 Locations"])
+            k, _ = s.upsert(p, "workday:acme.wd5/X", "t1", False)
+            p.locations = ["Austin, TX", "Remote"]
+            s.upsert(p, "workday:acme.wd5/X", "t2", False)
+            self.assertEqual(s.records[k]["locations"], ["Austin, TX", "Remote"])
+
+    def test_detail_url(self):
+        from unittest import mock
+        seen = {}
+
+        def fake(url, **kw):
+            seen["url"] = url
+            return {"jobPostingInfo": {"location": "Milwaukee, WI", "additionalLocations": ["Mayfield Heights, OH"],
+                                       "country": {"descriptor": "United States of America"}}}
+        with mock.patch.object(ats, "fetch_json", side_effect=fake):
+            locs = ats.workday_detail_locations("rok.wd1/External", "https://rok.wd1.myworkdayjobs.com/External/job/X/Firmware-Intern_R1")
+        self.assertEqual(seen["url"], "https://rok.wd1.myworkdayjobs.com/wday/cxs/rok/External/job/X/Firmware-Intern_R1")
+        self.assertEqual(locs, ["Milwaukee, WI", "Mayfield Heights, OH", "United States of America"])
+
+
 class StateBehavior(unittest.TestCase):
     def p(self, url="https://job-boards.greenhouse.io/acme/jobs/1", title="Software Intern", source="greenhouse"):
         return Posting(company="Acme", title=title, url=url, source=source, locations=["Austin, TX"])
@@ -284,16 +334,18 @@ class EndToEnd(unittest.TestCase):
                         "location": {"name": "Austin, TX"}, "first_published": (now - timedelta(days=10)).isoformat()}]}
         sent = []
 
-        def offline(board):
+        def offline(board, **kw):
             raise OSError("offline in tests")
 
         with tempfile.TemporaryDirectory() as d, \
              mock.patch.object(lists, "fetch_list", return_value=([], None)), \
-             mock.patch.dict(radar_main.FETCHERS, {"greenhouse": lambda b: ats.parse_greenhouse(b, gh) if b == "acme" else [],
+             mock.patch.dict(radar_main.FETCHERS, {"greenhouse": lambda b, **kw: ats.parse_greenhouse(b, gh) if b == "acme" else [],
                                                   "lever": offline, "ashby": offline, "workday": offline}), \
              mock.patch.object(radar_main, "send_alerts", side_effect=lambda new, url, mx: sent.append(list(new)) or len(new)), \
              mock.patch.object(radar_main.yc, "fetch_yc", return_value=[]), \
-             mock.patch.object(radar_main.hackernews, "latest_thread_id", return_value=None):
+             mock.patch.object(radar_main.hackernews, "latest_thread_id", return_value=None), \
+             mock.patch.object(radar_main.yc_directory, "fetch_directory", return_value=({}, None)), \
+             mock.patch.object(radar_main.yc_directory, "fetch_hiring", return_value=([], None)):
             cfg = Path(d) / "settings.toml"
             cfg.write_text((FIX / "settings.toml").read_text().replace('always_check = [', 'always_check = ["greenhouse:acme", ').replace(
                 '"greenhouse:stripe"', '"greenhouse:acme2"'))

@@ -88,7 +88,7 @@ class State:
         for f in ("season", "posted_at", "category", "board"):
             if not r.get(f) and getattr(p, f):
                 r[f] = getattr(p, f)
-        if p.locations and not r.get("locations"):
+        if p.locations and (not r.get("locations") or _vague(r["locations"])) and not _vague(p.locations):
             r["locations"] = p.locations
         if p.remote and not r.get("remote"):
             r["remote"] = True
@@ -112,3 +112,8 @@ class State:
             del self.records[k]
         hn = self.meta["hn"]
         hn["seen_ids"] = hn["seen_ids"][-3000:]
+
+
+def _vague(locations: list[str]) -> bool:
+    """Workday's "2 Locations" style placeholder instead of real places."""
+    return bool(locations) and all(re.fullmatch(r"\d+\s+locations?", (l or "").strip(), re.I) for l in locations)

@@ -10,7 +10,8 @@ PAGE_DAYS = 60
 PAGE_LIMIT = 5000
 
 
-def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: dict | None = None) -> int:
+def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: dict | None = None,
+               yc_boards: dict | None = None) -> int:
     from .main import matches  # avoid a circular import at module load
     from .sources.yc_directory import lookup
 
@@ -23,7 +24,9 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
             continue
         sources = sorted(r.get("first_seen_by", r.get("seen_by", {})).items(), key=lambda kv: kv[1])
         source_ids = [s for s, _ in sources]
-        yc_hit = lookup(yc_index or {}, r["company"], r.get("board"), r.get("url"))
+        # a board the YC finder confirmed belongs to a YC startup, else a name match in YC's directory
+        yc_hit = next(((yc_boards or {}).get(s) for s in source_ids if (yc_boards or {}).get(s)), None) \
+            or lookup(yc_index or {}, r["company"], r.get("board"), r.get("url"))
         from_yc_board = "yc" in source_ids
         from_hn = any(s.startswith("hn:") for s in source_ids)
         rows.append({
