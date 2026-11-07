@@ -1,0 +1,66 @@
+{
+ "run_at": "2026-11-07T13:04:28+00:00",
+ "sources": {
+  "list:Simplify": {
+   "ok": true,
+   "internships": 5302,
+   "boards_found": 2217
+  },
+  "list:vanshb03": {
+   "ok": true,
+   "internships": 2230,
+   "boards_found": 0
+  },
+  "yc_directory": {
+   "ok": true,
+   "note": "5157 YC company names"
+  },
+  "yc_board_finder": {
+   "ok": true,
+   "note": "1401 hiring US YC startups; looked up 0 this scan (0 requests), 0 new boards; 459 YC boards known; 0 still to look up"
+  },
+  "ashby": {
+   "ok": true,
+   "boards_ok": 693,
+   "failed": 0,
+   "internships": 806
+  },
+  "greenhouse": {
+   "ok": true,
+   "boards_ok": 567,
+   "failed": 1,
+   "internships": 2186
+  },
+  "workday": {
+   "ok": true,
+   "boards_ok": 1114,
+   "failed": 0,
+   "internships": 8381,
+   "locations_looked_up": 11
+  },
+  "lever": {
+   "ok": true,
+   "boards_ok": 204,
+   "failed": 0,
+   "internships": 569
+  },
+  "yc": {
+   "ok": true,
+   "internships": 1
+  },
+  "hackernews": {
+   "ok": true,
+   "internships": 0,
+   "comments_read": 2
+  }
+ },
+ "boards": {
+  "greenhouse:pretiuminternships2027": "HTTP 404"
+ },
+ "duration_s": 160.4,
+ "new_postings": 13,
+ "new_matching": 1,
+ "alerts_sent": 0,
+ "boards_checked": 2579,
+ "boards_known": 2658
+}
