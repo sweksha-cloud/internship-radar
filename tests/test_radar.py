@@ -361,6 +361,8 @@ class EndToEnd(unittest.TestCase):
             page = (Path(d) / "site" / "index.html").read_text()
             self.assertIn("ML Intern", page)
             self.assertNotIn("Marketing Intern", page)
+            for text in ('data-v="done"', 'data-v="dismissed"', 'data-a="dismiss"', "radarDismissed"):
+                self.assertIn(text, page)  # Done / Dismissed tabs and the Dismiss button
 
 
 if __name__ == "__main__":
