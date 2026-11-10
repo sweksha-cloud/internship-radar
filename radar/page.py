@@ -146,7 +146,6 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   <div class="btns">
     <a class="btn primary" id="scan" target="_blank" rel="noopener">Scan now ↗</a>
     <a class="btn" id="edit" target="_blank" rel="noopener">Edit settings ↗</a>
-    <button class="btn" id="seen">Mark all as seen</button>
   </div>
 </header>
 <div class="stats" id="stats"></div>
@@ -158,7 +157,7 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   <select id="sort"><option value="e">Newest posted first</option><option value="f">Newest found first</option></select>
   <select id="age"><option value="">Posted any time</option><option value="1">Posted in last 24 hrs</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option></select>
   <select id="kind"><option value="">All companies</option><option value="yc">YC companies only</option><option value="st">Startups only (YC + HN)</option></select>
-  <label class="tog"><input type="checkbox" id="onlynew"> New since my last visit</label>
+  <label class="tog"><input type="checkbox" id="onlynew"> New in last 2 days</label>
 </div>
 <div class="list" id="list"></div>
 <details><summary>Your settings</summary><div id="settings"></div></details>
@@ -168,7 +167,6 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
 <script>
 const D=JSON.parse(document.getElementById('data').textContent);
 const $=id=>document.getElementById(id);
-let lastVisit=null;try{lastVisit=localStorage.getItem('radarLastVisit')}catch(e){}
 $('scan').href=D.links.scan;$('edit').href=D.links.edit;
 const h=D.health,ago=t=>{if(!t)return'';const s=(Date.now()-new Date(t))/1000;if(s<3600)return Math.max(1,Math.round(s/60))+' min ago';if(s<86400)return Math.round(s/3600)+' hr ago';return Math.round(s/86400)+' d ago'};
 $('updated').textContent='Last scan '+ago(h.run_at)+' · '+new Date(h.run_at).toLocaleString();
@@ -185,9 +183,9 @@ let done=load('radarDone'),dis=load('radarDismissed'),view='open';
 const byK=Object.fromEntries(D.rows.map(r=>[r.k,r]));
 const markedAt=v=>typeof v==='string'?v:(v&&v.at)||'';
 const day=t=>t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
-const NEW_WINDOW=3*86400000;
+const NEW_WINDOW=2*86400000;
 const hidden=k=>done[k]||dis[k];
-function isNew(r){return !r.q&&lastVisit&&r.f>lastVisit&&(Date.now()-new Date(r.e))<NEW_WINDOW}
+function isNew(r){return (!r.q||!!r.p)&&(Date.now()-new Date(r.e))<NEW_WINDOW}
 function actions(k){
   const a=`data-k="${esc(k)}"`;
   if(view==='done')return `<span class="marked">✓ Done ${day(markedAt(done[k]))}</span><button class="act" data-a="undo" ${a}>Undo</button>`;
@@ -214,7 +212,7 @@ function render(){
   document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.v===view);b.textContent={open:'Open',done:`Done (${nDone})`,dismissed:`Dismissed (${nDis})`}[b.dataset.v]});
   $('filters').classList.toggle('slim',view!=='open');
   const open=D.rows.filter(r=>!hidden(r.k));
-  $('stats').innerHTML=`<div class="stat"><b>${open.length}</b><span>open</span></div><div class="stat"><b>${lastVisit?open.filter(isNew).length:'—'}</b><span>new since last visit</span></div><div class="stat"><b>${open.filter(r=>r.yc).length}</b><span>at YC companies</span></div><div class="stat"><b>${nDone}</b><span>marked done</span></div><div class="stat"><b>${nDis}</b><span>dismissed</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
+  $('stats').innerHTML=`<div class="stat"><b>${open.length}</b><span>open</span></div><div class="stat"><b>${open.filter(isNew).length}</b><span>new in last 2 days</span></div><div class="stat"><b>${open.filter(r=>r.yc).length}</b><span>at YC companies</span></div><div class="stat"><b>${nDone}</b><span>marked done</span></div><div class="stat"><b>${nDis}</b><span>dismissed</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
   if(view!=='open'){
     const items=marks();
     $('list').innerHTML=items.length?items.map(([k,v])=>byK[k]?rowHtml(byK[k]):goneHtml(k,v)).join(''):`<div class="empty">${$('q').value?'Nothing matches your search.':view==='done'?'No jobs marked done yet.':'No dismissed jobs.'}</div>`;
@@ -238,8 +236,6 @@ $('list').addEventListener('click',e=>{
 });
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;view=b.dataset.v;render()});
 ['q','src','loc','age','onlynew','kind','sort'].forEach(id=>$(id).addEventListener('input',render));
-$('seen').onclick=()=>{lastVisit=new Date().toISOString();try{localStorage.setItem('radarLastVisit',lastVisit)}catch(e){};render()};
-if(!lastVisit){try{localStorage.setItem('radarLastVisit',new Date().toISOString())}catch(e){}}
 const S=D.summary;
 $('settings').innerHTML=`<p>Role keywords (${S.roles_count}): ${esc(S.roles.join(', '))}${S.roles_count>S.roles.length?'…':''}<br>Seasons: ${esc(S.seasons.join(', '))}<br>United States only · Remote ${S.remote?'included':'excluded'} · No-location postings ${S.unknown?'included':'excluded'}</p><p><a href="${D.links.edit}" target="_blank" rel="noopener">Edit settings.toml ↗</a> (changes apply on the next scan; tap Scan now to run one)</p>`;
 const hs=Object.entries(h.sources||{}).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="${v.ok?'ok':'bad'}">${v.ok?'OK':'Error'}</td><td>${esc(v.error||v.note||[v.internships!=null?v.internships+' internships':'',v.boards_ok!=null?v.boards_ok+' boards OK':'',v.failed?v.failed+' failed':'',v.comments_read!=null?v.comments_read+' new comments read':''].filter(Boolean).join(' · '))}</td></tr>`).join('');
