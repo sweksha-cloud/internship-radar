@@ -100,10 +100,10 @@ h1{font-size:22px;margin:0}
 .btns{display:flex;gap:8px;flex-wrap:wrap}
 .btn{display:inline-block;padding:8px 12px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;cursor:pointer}
 .btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-.stats{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0}
-.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;min-width:120px}
+.stats{display:flex;gap:8px;flex-wrap:nowrap;overflow-x:auto;margin:16px 0}
+.stat{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:8px 12px;flex:1 0 auto}
 .stat b{display:block;font-size:20px}
-.stat span{color:var(--muted);font-size:12px}
+.stat span{color:var(--muted);font-size:12px;white-space:nowrap}
 .filters{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0 14px}
 .filters input,.filters select{padding:8px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:14px}
 .filters input[type=search]{flex:1 1 220px}
