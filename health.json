@@ -1,0 +1,88 @@
+{
+ "run_at": "2026-11-14T18:05:13+00:00",
+ "sources": {
+  "list:Simplify": {
+   "ok": true,
+   "internships": 5255,
+   "boards_found": 2200
+  },
+  "list:vanshb03": {
+   "ok": true,
+   "internships": 2474,
+   "boards_found": 0
+  },
+  "yc_directory": {
+   "ok": true,
+   "note": "5178 YC company names"
+  },
+  "yc_board_finder": {
+   "ok": true,
+   "note": "1384 hiring US YC startups; looked up 0 this scan (0 requests), 0 new boards; 461 YC boards known; 0 still to look up"
+  },
+  "ashby": {
+   "ok": true,
+   "boards_ok": 703,
+   "failed": 1,
+   "internships": 869
+  },
+  "greenhouse": {
+   "ok": true,
+   "boards_ok": 577,
+   "failed": 0,
+   "internships": 2150
+  },
+  "lever": {
+   "ok": true,
+   "boards_ok": 203,
+   "failed": 0,
+   "internships": 544
+  },
+  "workday": {
+   "ok": true,
+   "boards_ok": 1119,
+   "failed": 22,
+   "internships": 8099,
+   "locations_looked_up": 7
+  },
+  "yc": {
+   "ok": true,
+   "internships": 2
+  },
+  "hackernews": {
+   "ok": true,
+   "internships": 0,
+   "comments_read": 1
+  }
+ },
+ "boards": {
+  "workday:cccis.wd1/broadbean_external": "response was not JSON",
+  "workday:globalhr.wd5/rec_rtx_ext_gateway": "response was not JSON",
+  "workday:hp.wd5/EXTEU-AC-CareerSite": "response was not JSON",
+  "workday:elevancehealth.wd1/ANT": "response was not JSON",
+  "workday:hp.wd5/externalcareersite": "response was not JSON",
+  "workday:generalmotors.wd5/Careers_GM": "response was not JSON",
+  "workday:ryder.wd5/RyderCareers": "response was not JSON",
+  "workday:regions.wd5/regions_careers": "response was not JSON",
+  "workday:elevancehealth.wd1/ELV-ET": "response was not JSON",
+  "workday:ryan.wd1/Students-Graduates": "HTTP 404",
+  "workday:hpe.wd5/acjobsite": "response was not JSON",
+  "workday:mmc.wd1/mmc": "response was not JSON",
+  "workday:sentara.wd1/SCS": "response was not JSON",
+  "workday:calibercollision.wd1/protech": "response was not JSON",
+  "workday:target.wd5/targetcareers": "response was not JSON",
+  "workday:pru.wd5/Careers": "response was not JSON",
+  "workday:pru.wd5/pgim_careers": "response was not JSON",
+  "workday:truist.wd1/Careers": "response was not JSON",
+  "workday:usaa.wd1/USAAJOBSWD": "response was not JSON",
+  "workday:hpe.wd5/jobsathpe": "response was not JSON",
+  "ashby:offstream": "HTTP 404",
+  "workday:intel.wd1/external": "response was not JSON",
+  "workday:panerabread.wd5/panera_careers": "response was not JSON"
+ },
+ "duration_s": 213.4,
+ "new_postings": 86,
+ "new_matching": 8,
+ "alerts_sent": 0,
+ "boards_checked": 2625,
+ "boards_known": 2711
+}
