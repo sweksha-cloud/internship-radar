@@ -1,4 +1,4 @@
-"""YC jobs board (https://www.ycombinator.com/jobs).
+"""YC jobs board (https://www.ycombinator.com/jobs) and each YC company's public jobs page.
 
 There is no official API, so this reads the public pages. It tries the page's embedded
 JSON data first and falls back to reading job links. If YC changes the page, this source
@@ -91,3 +91,35 @@ def _walk_jobs(node):
     elif isinstance(node, list):
         for v in node:
             yield from _walk_jobs(v)
+
+
+# ---- each YC company's own jobs page ---------------------------------------------------
+# ycombinator.com/companies/<slug>/jobs lists every role the company posts on Work at a Startup,
+# no login needed. It's the only public place to see startups that have no Ashby/Greenhouse/Lever board.
+
+def fetch_company_jobs(slug: str, company: str) -> list[Posting]:
+    _, raw, _ = fetch(f"https://www.ycombinator.com/companies/{slug}/jobs", headers={"Accept": "text/html"})
+    return parse_company_jobs(raw.decode("utf-8", "replace"), company)
+
+
+def parse_company_jobs(page: str, company: str) -> list[Posting]:
+    m = re.search(r'data-page="([^"]+)"', page)
+    if not m:
+        raise FetchError("no page data (YC may have changed its page)")
+    jobs = json.loads(html.unescape(m.group(1))).get("props", {}).get("jobPostings")
+    if jobs is None:
+        raise FetchError("no jobPostings on the page (YC may have changed its page)")
+    out = []
+    for j in jobs:
+        title = (j.get("title") or "").strip()
+        if not title or not j.get("url"):
+            continue
+        if (j.get("type") or "").lower() != "internship" and not re.search(r"\bintern", title, re.I):
+            continue
+        if not re.search(r"\bintern|co-?op\b", title, re.I):
+            title += " (Internship)"   # YC marks it an internship even when the title doesn't say so
+        locs = [x.strip() for x in (j.get("location") or "").split(" / ") if x.strip()]
+        out.append(Posting(company=j.get("companyName") or company, title=title,
+                           url="https://www.ycombinator.com" + j["url"], source="yc", locations=locs,
+                           remote=True if any("remote" in x.lower() for x in locs) else None))
+    return out

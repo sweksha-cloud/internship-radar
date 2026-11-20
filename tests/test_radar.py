@@ -372,6 +372,30 @@ class Repeats(unittest.TestCase):
         self.assertEqual(rows[0]["src"], ["Greenhouse", "Simplify"])
 
 
+class YCCompanyPages(unittest.TestCase):
+    def page(self, jobs):
+        import html as h
+        data = json.dumps({"component": "WaasShowJobsPage", "props": {"jobPostings": jobs}})
+        return f'<div id="app" data-page="{h.escape(data)}"></div>'
+
+    def test_keeps_internships_only(self):
+        jobs = [{"title": "Software Engineering Intern (Summer 2027)", "type": "Internship", "companyName": "Acme",
+                 "url": "/companies/acme/jobs/abc-swe-intern", "location": "San Francisco, CA, US / Remote (US)"},
+                {"title": "Account Executive", "type": "Full-time", "companyName": "Acme",
+                 "url": "/companies/acme/jobs/def-ae", "location": "New York, NY, US"},
+                {"title": "Software Engineer", "type": "Internship", "companyName": "Acme",
+                 "url": "/companies/acme/jobs/ghi-swe", "location": ""}]
+        ps = yc.parse_company_jobs(self.page(jobs), "Acme")
+        self.assertEqual([p.title for p in ps], ["Software Engineering Intern (Summer 2027)", "Software Engineer (Internship)"])
+        self.assertEqual(ps[0].url, "https://www.ycombinator.com/companies/acme/jobs/abc-swe-intern")
+        self.assertEqual(ps[0].locations, ["San Francisco, CA, US", "Remote (US)"])
+        self.assertTrue(ps[0].remote)
+
+    def test_changed_page_is_an_error_not_silence(self):
+        with self.assertRaises(Exception):
+            yc.parse_company_jobs("<html>nothing here</html>", "Acme")
+
+
 class YourSettingsFile(unittest.TestCase):
     def test_settings_file_is_valid(self):
         s = load_settings(ROOT / "settings.toml")
