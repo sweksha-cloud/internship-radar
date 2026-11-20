@@ -161,6 +161,14 @@ def main(argv=None):
             health["sources"]["yc"] = {"ok": False, "error": str(e)[:200]}
         print(f"[yc] {health['sources']['yc']}")
 
+    # 4a. YC company jobs pages (Work at a Startup roles, no login), a batch per scan
+    if settings.source_on("yc"):
+        try:
+            health["sources"]["yc_company_pages"] = check_yc_pages(state, take, args.workers)
+        except Exception as e:
+            health["sources"]["yc_company_pages"] = {"ok": False, "error": str(e)[:200]}
+        print(f"[yc_company_pages] {health['sources']['yc_company_pages']}")
+
     # 4b. Hacker News "Who is hiring?"
     if settings.source_on("hackernews"):
         hn = state.meta["hn"]
@@ -263,6 +271,42 @@ def find_yc_boards(state: State, workers: int) -> dict:
     total_found = len(state.meta["yc_boards"])
     return {"ok": True, "note": f"{len(hiring)} hiring US YC startups; looked up {len(batch)} this scan "
             f"({used} requests), {found_now} new boards; {total_found} YC boards known; {len(queue) - len(batch)} still to look up"}
+
+
+YC_PAGE_BUDGET = 150      # company pages per scan; ~1,400 hiring startups means each one about once a day
+YC_PAGE_RECHECK_HOURS = 20
+
+
+def check_yc_pages(state: State, take, workers: int) -> dict:
+    """Read the public jobs pages of hiring US YC startups, startups with no board found first."""
+    hiring_file = state.folder / "yc_hiring.json"
+    hiring = json.loads(hiring_file.read_text()) if hiring_file.exists() else []
+    seen = state.meta.setdefault("yc_pages", {})
+    probe = state.meta.get("yc_probe", {})
+    now = datetime.now(timezone.utc)
+    due = [c for c in hiring if c.get("s") and (
+        c["s"] not in seen or now - datetime.fromisoformat(seen[c["s"]]) > timedelta(hours=YC_PAGE_RECHECK_HOURS))]
+    # no Ashby/Greenhouse/Lever board found = the radar can't see their jobs any other way
+    due.sort(key=lambda c: (bool(probe.get(c["s"], {}).get("boards")), seen.get(c["s"], "")))
+    batch = due[:YC_PAGE_BUDGET]
+    ok, failed, found = 0, 0, 0
+
+    def one(c):
+        try:
+            return yc.fetch_company_jobs(c["s"], c["n"]), None
+        except Exception as e:
+            return None, e
+
+    with ThreadPoolExecutor(max_workers=min(workers, 8)) as ex:
+        for c, (postings, err) in zip(batch, ex.map(one, batch)):
+            if err is not None:
+                failed += 1
+                continue
+            found += take(postings, f"ycco:{c['s']}")
+            seen[c["s"]] = now.isoformat()
+            ok += 1
+    return {"ok": ok > 0 or not batch, "pages_read": ok, "failed": failed, "internships": found,
+            "note": f"{len(due) - len(batch)} more due"}
 
 
 def fill_workday_locations(board: str, postings, state: State, matcher: Matcher, budget: dict):

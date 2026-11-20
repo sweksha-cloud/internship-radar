@@ -29,7 +29,7 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
         # a board the YC finder confirmed belongs to a YC startup, else a name match in YC's directory
         yc_hit = next(((yc_boards or {}).get(s) for s in source_ids if (yc_boards or {}).get(s)), None) \
             or lookup(yc_index or {}, r["company"], r.get("board"), r.get("url"))
-        from_yc_board = "yc" in source_ids
+        from_yc_board = any(s == "yc" or s.startswith("ycco:") for s in source_ids)
         from_hn = any(s.startswith("hn:") for s in source_ids)
         rows.append({
             "k": k,
@@ -110,6 +110,8 @@ def label(source_id: str) -> str:
         return "HN Who's hiring"
     if source_id == "yc":
         return "YC jobs board"
+    if source_id.startswith("ycco:"):
+        return "YC company page"
     system = source_id.split(":", 1)[0]
     return {"greenhouse": "Greenhouse", "lever": "Lever", "ashby": "Ashby", "workday": "Workday"}.get(system, system)
 
