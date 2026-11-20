@@ -290,6 +290,7 @@ def check_yc_pages(state: State, take, workers: int) -> dict:
     due.sort(key=lambda c: (bool(probe.get(c["s"], {}).get("boards")), seen.get(c["s"], "")))
     batch = due[:YC_PAGE_BUDGET]
     ok, failed, found = 0, 0, 0
+    reasons: dict[str, int] = {}
 
     def one(c):
         try:
@@ -297,16 +298,19 @@ def check_yc_pages(state: State, take, workers: int) -> dict:
         except Exception as e:
             return None, e
 
-    with ThreadPoolExecutor(max_workers=min(workers, 8)) as ex:
+    # gentle: YC throttles busy clients, and failed pages are simply retried next scan
+    with ThreadPoolExecutor(max_workers=min(workers, 4)) as ex:
         for c, (postings, err) in zip(batch, ex.map(one, batch)):
             if err is not None:
                 failed += 1
+                why = str(err)[:60]
+                reasons[why] = reasons.get(why, 0) + 1
                 continue
             found += take(postings, f"ycco:{c['s']}")
             seen[c["s"]] = now.isoformat()
             ok += 1
     return {"ok": ok > 0 or not batch, "pages_read": ok, "failed": failed, "internships": found,
-            "note": f"{len(due) - len(batch)} more due"}
+            "note": f"{len(due) - len(batch)} more due", "errors": dict(sorted(reasons.items(), key=lambda kv: -kv[1])[:3])}
 
 
 def fill_workday_locations(board: str, postings, state: State, matcher: Matcher, budget: dict):
