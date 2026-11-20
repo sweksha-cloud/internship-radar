@@ -5,7 +5,8 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from radar.filters import Matcher, load_settings, us_verdict, detect_season
-from radar.model import Posting, job_key, parse_board
+from radar.model import Posting, job_key, parse_board, role_key, terms_of, same_term
+from radar.page import merge_repeats
 from radar.sources import ats, hackernews, yc
 from radar.state import State
 
@@ -312,6 +313,63 @@ class StateBehavior(unittest.TestCase):
             s2 = State(d)
             self.assertEqual(len(s2.records), 1)
             self.assertFalse(s2.first_run)
+
+
+class Repeats(unittest.TestCase):
+    """The same role worded differently should be one posting; different terms stay separate."""
+    def test_role_key_ignores_wording(self):
+        same = [("Software Engineer Intern - Backend", "Software Engineering Intern, Backend"),
+                ("Security Engineering Intern", "Security Engineering Intern (Summer 2027)"),
+                ("GNC Software Engineer Intern", "Software Engineering Intern, GNC"),
+                ("Backend Engineer Intern", "Backend Engineer Intern - Backend Engineering"),
+                ("SWE Intern", "Software Engineer Internship")]
+        for a, b in same:
+            self.assertEqual(role_key("Acme", a), role_key("Acme", b), (a, b))
+        for a, b in [("Software Engineer Intern - Backend", "Software Engineer Intern - Frontend"),
+                     ("Software Engineer Intern", "Software Engineer Co-op"),
+                     ("Data Science Intern", "Data Engineer Intern")]:
+            self.assertNotEqual(role_key("Acme", a), role_key("Acme", b), (a, b))
+        self.assertNotEqual(role_key("Acme", "SWE Intern"), role_key("Other", "SWE Intern"))
+
+    def test_terms(self):
+        self.assertEqual(terms_of(None, "SWE Intern (Summer 2027)"), ["Summer"])
+        self.assertEqual(terms_of("Fall 2026, Spring 2027", "Intern"), ["Spring", "Fall"])
+        self.assertEqual(terms_of(None, "Software Co-Op, Autumn"), ["Fall", "Co-op"])
+        self.assertEqual(terms_of(None, "Software Engineer Intern"), [])
+        self.assertTrue(same_term(["Summer"], []))
+        self.assertTrue(same_term(["Summer", "Fall"], ["Fall"]))
+        self.assertFalse(same_term(["Summer"], ["Winter"]))
+
+    def p(self, title, url, source="greenhouse"):
+        return Posting(company="Acme", title=title, url=url, source=source, locations=["Austin, TX"])
+
+    def test_reworded_repeat_is_not_new(self):
+        with tempfile.TemporaryDirectory() as d:
+            s = State(d)
+            k1, _ = s.upsert(self.p("Software Engineer Intern - Backend", "https://go.vansh.nyc/a", "list:vanshb03"), "list:vanshb03", "t1", False)
+            k2, new = s.upsert(self.p("Software Engineering Intern, Backend (Summer 2027)",
+                                      "https://job-boards.greenhouse.io/acme/jobs/9"), "greenhouse:acme", "t2", False)
+            self.assertFalse(new)
+            self.assertEqual(k1, k2)
+            self.assertEqual(s.records[k1]["url"], "https://job-boards.greenhouse.io/acme/jobs/9")
+
+    def test_summer_and_winter_stay_separate(self):
+        with tempfile.TemporaryDirectory() as d:
+            s = State(d)
+            s.upsert(self.p("Flight Software Intern (Summer 2027)", "https://job-boards.greenhouse.io/acme/jobs/1"), "greenhouse:acme", "t1", False)
+            _, new = s.upsert(self.p("Flight Software Intern (Winter 2027)", "https://job-boards.greenhouse.io/acme/jobs/2"), "greenhouse:acme", "t1", False)
+            self.assertTrue(new)
+
+    def test_page_merges_repeats_already_stored(self):
+        def row(k, t, f, tm, src):
+            return {"k": k, "c": "Acme", "t": t, "u": "u" + k, "l": "Austin, TX", "f": f, "tm": tm, "src": [src],
+                    "rk": role_key("Acme", t), "yc": "", "ycu": "", "p": "", "st": False}
+        rows = merge_repeats([row("b", "Software Engineering Intern, Backend", "2", ["Not stated"], "Greenhouse"),
+                              row("a", "Software Engineer Intern - Backend", "1", ["Summer"], "Simplify"),
+                              row("c", "Software Engineer Intern - Backend", "3", ["Winter"], "Greenhouse")])
+        self.assertEqual([r["k"] for r in rows], ["a", "c"])
+        self.assertEqual(rows[0]["dk"], ["b"])
+        self.assertEqual(rows[0]["src"], ["Greenhouse", "Simplify"])
 
 
 class YourSettingsFile(unittest.TestCase):

@@ -6,7 +6,7 @@ import re
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-from .model import Posting
+from .model import Posting, role_key, same_term, terms_of
 
 # Anything that looks like an internship is stored, whatever your settings say. Your settings are
 # applied when alerting and when building the page, so changing them takes effect right away and
@@ -31,8 +31,10 @@ class State:
         self.meta.setdefault("hn", {"thread_id": None, "seen_ids": []})
         self.meta.setdefault("runs", 0)
         self._ct_index = {}
+        self._role_index: dict[str, list[str]] = {}
         for k, r in self.records.items():
             self._ct_index.setdefault(r.get("ct_key", ""), k)
+            self._role_index.setdefault(role_key(r["company"], r["title"]), []).append(k)
 
     def _load(self, name, default):
         p = self.folder / name
@@ -67,6 +69,8 @@ class State:
             if existing and existing in self.records:
                 rec_key = existing
         if rec_key is None:
+            rec_key = self._repeat_of(p)
+        if rec_key is None:
             self.records[key] = {
                 "company": p.company, "title": p.title, "url": p.url, "locations": p.locations,
                 "remote": p.remote, "season": p.season, "posted_at": p.posted_at,
@@ -76,6 +80,7 @@ class State:
                 "first_seen_by": {source_id: run_ts},
             }
             self._ct_index.setdefault(p.ct_key, key)
+            self._role_index.setdefault(p.role_key, []).append(key)
             return key, True
         r = self.records[rec_key]
         r["last_seen"] = run_ts
@@ -93,6 +98,15 @@ class State:
         if p.remote and not r.get("remote"):
             r["remote"] = True
         return rec_key, False
+
+    def _repeat_of(self, p: Posting) -> str | None:
+        """An open record for the same role worded differently (see model.role_key), so it isn't alerted twice."""
+        mine = terms_of(p.season, p.title)
+        for k in self._role_index.get(p.role_key, []):
+            r = self.records.get(k)
+            if r and not r.get("closed") and same_term(mine, terms_of(r.get("season"), r["title"])):
+                return k
+        return None
 
     def mark_closed(self, checked_ok: set[str], run_ts: str):
         """A posting is closed when every source that used to list it was checked and no longer does."""

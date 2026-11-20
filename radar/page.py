@@ -6,6 +6,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .model import role_key, same_term, terms_of
+
 PAGE_DAYS = 60
 PAGE_LIMIT = 5000
 
@@ -44,7 +46,10 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
             "ycu": (yc_hit or {}).get("u") or "",
             # startup = YC company, or found on YC's jobs board or Hacker News "Who is hiring?"
             "st": bool(yc_hit or from_yc_board or from_hn),
+            "tm": terms_of(r.get("season"), r["title"]) or ["Not stated"],
+            "rk": role_key(r["company"], r["title"]),
         })
+    rows = merge_repeats(rows)
     # newest posted first ("e" = the company's posting date, or when the radar found it if earlier/unknown)
     rows.sort(key=lambda x: x["e"], reverse=True)
     rows = rows[:PAGE_LIMIT]
@@ -68,6 +73,34 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
     (out / "index.html").write_text(TEMPLATE.replace("__DATA__", data))
     (out / "postings.json").write_text(json.dumps(rows, indent=0))
     return len(rows)
+
+
+def merge_repeats(rows: list[dict]) -> list[dict]:
+    """One row per role. A repeat (same company and role, worded differently, terms that don't clash)
+    folds into the earliest one: its sources and locations are added and its key kept in "dk",
+    so marking either one done hides both."""
+    kept: dict[str, list[dict]] = {}
+    out = []
+    for r in sorted(rows, key=lambda x: x["f"]):
+        terms = [t for t in r["tm"] if t != "Not stated"]
+        same = next((x for x in kept.get(r["rk"], [])
+                     if same_term(terms, [t for t in x["tm"] if t != "Not stated"])), None)
+        if same is None:
+            kept.setdefault(r["rk"], []).append(r)
+            out.append(r)
+            continue
+        same.setdefault("dk", []).append(r["k"])
+        same["src"] = sorted(set(same["src"]) | set(r["src"]))
+        if r["l"] and r["l"] not in same["l"]:
+            same["l"] = (same["l"] + "; " + r["l"] if same["l"] else r["l"])[:120]
+        if same["tm"] == ["Not stated"] and terms:
+            same["tm"] = r["tm"]
+        for f in ("yc", "ycu", "p"):
+            same[f] = same[f] or r[f]
+        same["st"] = same["st"] or r["st"]
+    for r in out:
+        r.pop("rk", None)
+    return out
 
 
 def label(source_id: str) -> str:
@@ -156,6 +189,7 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
   <select id="loc"><option value="">All locations</option><option>US</option><option>Remote</option><option>Unclear</option></select>
   <select id="sort"><option value="e">Newest posted first</option><option value="f">Newest found first</option></select>
   <select id="age"><option value="">Posted any time</option><option value="1">Posted in last 24 hrs</option><option value="3">Last 3 days</option><option value="7">Last 7 days</option><option value="14">Last 14 days</option></select>
+  <select id="term"><option value="">Any term</option></select>
   <select id="kind"><option value="">All companies</option><option value="yc">YC companies only</option><option value="st">Startups only (YC + HN)</option></select>
   <label class="tog"><input type="checkbox" id="onlynew"> New in last 2 days</label>
 </div>
@@ -180,11 +214,13 @@ srcs.forEach(s=>{const o=document.createElement('option');o.textContent=s;$('src
 const load=n=>{try{const o=JSON.parse(localStorage.getItem(n)||'{}');return o&&typeof o==='object'?o:{}}catch(e){return {}}};
 const save=(n,o)=>{try{localStorage.setItem(n,JSON.stringify(o))}catch(e){}};
 let done=load('radarDone'),dis=load('radarDismissed'),view='open';
-const byK=Object.fromEntries(D.rows.map(r=>[r.k,r]));
+const byK=Object.fromEntries(D.rows.flatMap(r=>[[r.k,r],...(r.dk||[]).map(k=>[k,r])]));
+['Spring','Summer','Fall','Winter','Co-op','Not stated'].filter(t=>D.rows.some(r=>r.tm.includes(t))).forEach(t=>{const o=document.createElement('option');o.textContent=t;$('term').appendChild(o)});
 const markedAt=v=>typeof v==='string'?v:(v&&v.at)||'';
 const day=t=>t?new Date(t).toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}):'';
 const NEW_WINDOW=2*86400000;
 const hidden=k=>done[k]||dis[k];
+const hiddenRow=r=>[r.k,...(r.dk||[])].some(hidden);
 function isNew(r){return (!r.q||!!r.p)&&(Date.now()-new Date(r.e))<NEW_WINDOW}
 function actions(k){
   const a=`data-k="${esc(k)}"`;
@@ -211,7 +247,7 @@ function render(){
   const nDone=Object.keys(done).length,nDis=Object.keys(dis).length;
   document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.v===view);b.textContent={open:'Open',done:`Done (${nDone})`,dismissed:`Dismissed (${nDis})`}[b.dataset.v]});
   $('filters').classList.toggle('slim',view!=='open');
-  const open=D.rows.filter(r=>!hidden(r.k));
+  const open=D.rows.filter(r=>!hiddenRow(r));
   $('stats').innerHTML=`<div class="stat"><b>${open.length}</b><span>open</span></div><div class="stat"><b>${open.filter(isNew).length}</b><span>new in last 2 days</span></div><div class="stat"><b>${open.filter(r=>r.yc).length}</b><span>at YC companies</span></div><div class="stat"><b>${nDone}</b><span>marked done</span></div><div class="stat"><b>${nDis}</b><span>dismissed</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
   if(view!=='open'){
     const items=marks();
@@ -220,8 +256,8 @@ function render(){
   }
   const q=$('q').value.toLowerCase(),src=$('src').value,loc=$('loc').value,age=+$('age').value,onlyNew=$('onlynew').checked;
   const cutoff=age?new Date(Date.now()-age*86400000).toISOString():'';
-  const kind=$('kind').value,sortBy=$('sort').value;
-  const rows=open.filter(r=>(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||r.e>=cutoff)&&(!onlyNew||isNew(r))&&(!kind||(kind==='yc'?!!r.yc:r.st)));
+  const kind=$('kind').value,sortBy=$('sort').value,term=$('term').value;
+  const rows=open.filter(r=>(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||r.e>=cutoff)&&(!onlyNew||isNew(r))&&(!kind||(kind==='yc'?!!r.yc:r.st))&&(!term||r.tm.includes(term)));
   if(sortBy==='f')rows.sort((a,b)=>a.f<b.f?1:a.f>b.f?-1:(a.e<b.e?1:-1));
   $('list').innerHTML=rows.length?rows.slice(0,800).map(rowHtml).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
 }
@@ -235,7 +271,7 @@ $('list').addEventListener('click',e=>{
   save('radarDone',done);save('radarDismissed',dis);render();
 });
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;view=b.dataset.v;render()});
-['q','src','loc','age','onlynew','kind','sort'].forEach(id=>$(id).addEventListener('input',render));
+['q','src','loc','age','onlynew','kind','sort','term'].forEach(id=>$(id).addEventListener('input',render));
 const S=D.summary;
 $('settings').innerHTML=`<p>Role keywords (${S.roles_count}): ${esc(S.roles.join(', '))}${S.roles_count>S.roles.length?'…':''}<br>Seasons: ${esc(S.seasons.join(', '))}<br>United States only · Remote ${S.remote?'included':'excluded'} · No-location postings ${S.unknown?'included':'excluded'}</p><p><a href="${D.links.edit}" target="_blank" rel="noopener">Edit settings.toml ↗</a> (changes apply on the next scan; tap Scan now to run one)</p>`;
 const hs=Object.entries(h.sources||{}).map(([k,v])=>`<tr><td>${esc(k)}</td><td class="${v.ok?'ok':'bad'}">${v.ok?'OK':'Error'}</td><td>${esc(v.error||v.note||[v.internships!=null?v.internships+' internships':'',v.boards_ok!=null?v.boards_ok+' boards OK':'',v.failed?v.failed+' failed':'',v.comments_read!=null?v.comments_read+' new comments read':''].filter(Boolean).join(' · '))}</td></tr>`).join('');

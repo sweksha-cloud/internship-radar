@@ -25,6 +25,10 @@ class Posting:
         return job_key(self.url) or "ct:" + company_title_key(self.company, self.title, self.locations)
 
     @property
+    def role_key(self) -> str:
+        return role_key(self.company, self.title)
+
+    @property
     def ct_key(self) -> str:
         return company_title_key(self.company, self.title, self.locations)
 
@@ -63,6 +67,45 @@ def _norm(s: str) -> str:
 
 def company_title_key(company: str, title: str, locations: list[str] | None = None) -> str:
     return f"{_norm(company)}|{_norm(title)}"
+
+
+# words that don't change which role it is
+_ROLE_DROP = {"intern", "interns", "internship", "internships", "the", "a", "an", "of", "and", "for", "to",
+              "in", "at", "with", "program", "position", "role", "student", "students"}
+_ROLE_SAME = {"engineering": "engineer", "engineers": "engineer", "development": "developer",
+              "developers": "developer", "dev": "developer", "swe": "software engineer", "sde": "software engineer",
+              "autumn": "fall"}
+TERMS = ("spring", "summer", "fall", "winter")
+
+
+def role_key(company: str, title: str) -> str:
+    """Company + the title's words, ignoring order, season, year and filler, so
+    'Software Engineer Intern - Backend' and 'Software Engineering Intern, Backend (Summer 2027)' match."""
+    t = re.sub(r"\bco op\b", "coop", _norm(title))
+    words = set()
+    for w in t.split():
+        w = _ROLE_SAME.get(w, w)
+        for x in w.split():
+            if x in _ROLE_DROP or x in TERMS or re.fullmatch(r"(20)?\d\d", x):
+                continue
+            words.add(x)
+    return f"{_norm(company)}|{' '.join(sorted(words))}"
+
+
+def terms_of(season: str | None, title: str = "") -> list[str]:
+    """Which terms a posting is for: Spring/Summer/Fall/Winter/Co-op, or [] if it doesn't say."""
+    hay = f"{season or ''} {title or ''}".lower().replace("autumn", "fall")
+    found = [t.title() for t in TERMS if re.search(rf"\b{t}\b", hay)]
+    if re.search(r"\bco[\s-]?op\b", hay):
+        found.append("Co-op")
+    return found
+
+
+def same_term(a: list[str], b: list[str]) -> bool:
+    """Repeats only if the terms don't clash: 'Summer' vs 'Winter' are different roles,
+    but a posting that names no season matches either."""
+    sa, sb = set(a) - {"Co-op"}, set(b) - {"Co-op"}
+    return not sa or not sb or bool(sa & sb)
 
 
 _GH_PATH = re.compile(r"/([A-Za-z0-9_-]+)/jobs/(\d+)")
