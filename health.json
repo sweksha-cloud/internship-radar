@@ -1,0 +1,77 @@
+{
+ "run_at": "2026-11-21T11:05:39+00:00",
+ "sources": {
+  "list:Simplify": {
+   "ok": true,
+   "internships": 5036,
+   "boards_found": 2194
+  },
+  "list:vanshb03": {
+   "ok": true,
+   "internships": 2505,
+   "boards_found": 0
+  },
+  "yc_directory": {
+   "ok": true,
+   "note": "5185 YC company names"
+  },
+  "yc_board_finder": {
+   "ok": true,
+   "note": "1371 hiring US YC startups; looked up 4 this scan (15 requests), 0 new boards; 472 YC boards known; 0 still to look up"
+  },
+  "greenhouse": {
+   "ok": true,
+   "boards_ok": 590,
+   "failed": 0,
+   "internships": 2134
+  },
+  "ashby": {
+   "ok": true,
+   "boards_ok": 720,
+   "failed": 0,
+   "internships": 872
+  },
+  "workday": {
+   "ok": true,
+   "boards_ok": 1153,
+   "failed": 2,
+   "internships": 8069,
+   "locations_looked_up": 10
+  },
+  "lever": {
+   "ok": true,
+   "boards_ok": 208,
+   "failed": 0,
+   "internships": 575
+  },
+  "yc": {
+   "ok": true,
+   "internships": 1
+  },
+  "yc_company_pages": {
+   "ok": true,
+   "pages_read": 122,
+   "failed": 28,
+   "internships": 17,
+   "note": "987 more due",
+   "errors": {
+    "HTTP 429": 28
+   }
+  },
+  "hackernews": {
+   "ok": true,
+   "internships": 0,
+   "comments_read": 0
+  }
+ },
+ "boards": {
+  "workday:target.wd5/targetcareers": "response was not JSON",
+  "workday:citi.wd5/2": "response was not JSON"
+ },
+ "duration_s": 495.2,
+ "new_postings": 24,
+ "new_matching": 0,
+ "alerts_sent": 0,
+ "boards_checked": 2673,
+ "boards_known": 2762
+}
