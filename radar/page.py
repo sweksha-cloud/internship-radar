@@ -6,6 +6,7 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .categories import ORDER, role_category
 from .model import role_key, same_term, terms_of
 
 PAGE_DAYS = 60
@@ -48,6 +49,7 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
             "st": bool(yc_hit or from_yc_board or from_hn),
             "tm": terms_of(r.get("season"), r["title"]) or ["Not stated"],
             "rk": role_key(r["company"], r["title"]),
+            "rc": role_category(r["title"]),
         })
     rows = merge_repeats(rows)
     # newest posted first ("e" = the company's posting date, or when the radar found it if earlier/unknown)
@@ -66,7 +68,7 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
         "remote": settings.allow_remote,
         "unknown": settings.allow_unknown,
     }
-    data = json.dumps({"rows": rows, "health": health, "links": links, "summary": summary},
+    data = json.dumps({"rows": rows, "health": health, "links": links, "summary": summary, "roles": ORDER},
                       separators=(",", ":")).replace("</", "<\\/")
     out = Path(site_dir)
     out.mkdir(parents=True, exist_ok=True)
@@ -163,6 +165,11 @@ label.tog{display:flex;align-items:center;gap:6px;font-size:14px;color:var(--mut
 .tab{padding:7px 14px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:14px;font-weight:600;cursor:pointer}
 .tab.on{background:var(--accent);border-color:var(--accent);color:#fff}
 .filters.slim>*:not(#q){display:none}
+.roles{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 10px}
+.roles.hide{display:none}
+.role{padding:5px 12px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--ink);font-size:13px;cursor:pointer}
+.role.on{background:var(--chip);border-color:var(--accent);color:var(--ink);font-weight:600}
+.role span{color:var(--muted);margin-left:4px;font-weight:400}
 @media (max-width:560px){.acts{justify-content:flex-start}}
 .badge{font-size:11px;font-weight:700;color:var(--newink)}
 details{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 14px;margin:12px 0}
@@ -185,6 +192,7 @@ td,th{text-align:left;padding:4px 6px;border-bottom:1px solid var(--line)}
 </header>
 <div class="stats" id="stats"></div>
 <div class="tabs" id="tabs"><button class="tab on" data-v="open">Open</button><button class="tab" data-v="done">Done</button><button class="tab" data-v="dismissed">Dismissed</button></div>
+<div class="roles" id="roles" role="group" aria-label="Role type"></div>
 <div class="filters" id="filters">
   <input type="search" id="q" placeholder="Search company, title, location…">
   <select id="src"><option value="">All sources</option></select>
@@ -216,6 +224,9 @@ srcs.forEach(s=>{const o=document.createElement('option');o.textContent=s;$('src
 const load=n=>{try{const o=JSON.parse(localStorage.getItem(n)||'{}');return o&&typeof o==='object'?o:{}}catch(e){return {}}};
 const save=(n,o)=>{try{localStorage.setItem(n,JSON.stringify(o))}catch(e){}};
 let done=load('radarDone'),dis=load('radarDismissed'),view='open';
+// The selected role button is remembered in this browser, like the done and dismissed marks.
+let roleSel=(()=>{try{return localStorage.getItem('radarRole')||''}catch(e){return ''}})();
+if(roleSel&&!(D.roles||[]).includes(roleSel))roleSel='';
 const byK=Object.fromEntries(D.rows.flatMap(r=>[[r.k,r],...(r.dk||[]).map(k=>[k,r])]));
 ['Spring','Summer','Fall','Winter','Co-op','Not stated'].filter(t=>D.rows.some(r=>r.tm.includes(t))).forEach(t=>{const o=document.createElement('option');o.textContent=t;$('term').appendChild(o)});
 const markedAt=v=>typeof v==='string'?v:(v&&v.at)||'';
@@ -250,6 +261,9 @@ function render(){
   document.querySelectorAll('.tab').forEach(b=>{b.classList.toggle('on',b.dataset.v===view);b.textContent={open:'Open',done:`Done (${nDone})`,dismissed:`Dismissed (${nDis})`}[b.dataset.v]});
   $('filters').classList.toggle('slim',view!=='open');
   const open=D.rows.filter(r=>!hiddenRow(r));
+  const counts={};open.forEach(r=>{counts[r.rc]=(counts[r.rc]||0)+1});
+  $('roles').classList.toggle('hide',view!=='open');
+  $('roles').innerHTML=[['','All',open.length],...(D.roles||[]).map(c=>[c,c,counts[c]||0])].map(([v,l,n])=>`<button class="role${roleSel===v?' on':''}" data-r="${esc(v)}" aria-pressed="${roleSel===v}">${esc(l)}<span>${n}</span></button>`).join('');
   $('stats').innerHTML=`<div class="stat"><b>${open.length}</b><span>open</span></div><div class="stat"><b>${open.filter(isNew).length}</b><span>new in last 2 days</span></div><div class="stat"><b>${open.filter(r=>r.yc).length}</b><span>at YC companies</span></div><div class="stat"><b>${nDone}</b><span>marked done</span></div><div class="stat"><b>${nDis}</b><span>dismissed</span></div><div class="stat"><b>${h.new_matching??0}</b><span>new in last scan</span></div><div class="stat"><b>${h.boards_checked??0}</b><span>company boards checked</span></div>`;
   if(view!=='open'){
     const items=marks();
@@ -259,7 +273,7 @@ function render(){
   const q=$('q').value.toLowerCase(),src=$('src').value,loc=$('loc').value,age=+$('age').value,onlyNew=$('onlynew').checked;
   const cutoff=age?new Date(Date.now()-age*86400000).toISOString():'';
   const kind=$('kind').value,sortBy=$('sort').value,term=$('term').value;
-  const rows=open.filter(r=>(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||r.e>=cutoff)&&(!onlyNew||isNew(r))&&(!kind||(kind==='yc'?!!r.yc:r.st))&&(!term||r.tm.includes(term)));
+  const rows=open.filter(r=>(!q||(r.c+' '+r.t+' '+r.l+' '+r.s).toLowerCase().includes(q))&&(!src||r.src.includes(src))&&(!loc||r.ll===loc)&&(!cutoff||r.e>=cutoff)&&(!onlyNew||isNew(r))&&(!kind||(kind==='yc'?!!r.yc:r.st))&&(!term||r.tm.includes(term))&&(!roleSel||r.rc===roleSel));
   if(sortBy==='f')rows.sort((a,b)=>a.f<b.f?1:a.f>b.f?-1:(a.e<b.e?1:-1));
   $('list').innerHTML=rows.length?rows.slice(0,800).map(rowHtml).join('')+(rows.length>800?`<div class="empty">Showing 800 of ${rows.length}. Search or filter to narrow down.</div>`:''):'<div class="empty">Nothing matches these filters.</div>';
 }
@@ -273,6 +287,7 @@ $('list').addEventListener('click',e=>{
   save('radarDone',done);save('radarDismissed',dis);render();
 });
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('.tab');if(!b)return;view=b.dataset.v;render()});
+$('roles').addEventListener('click',e=>{const b=e.target.closest('.role');if(!b)return;roleSel=b.dataset.r;try{localStorage.setItem('radarRole',roleSel)}catch(e){}render()});
 ['q','src','loc','age','onlynew','kind','sort','term'].forEach(id=>$(id).addEventListener('input',render));
 const S=D.summary;
 $('settings').innerHTML=`<p>Role keywords (${S.roles_count}): ${esc(S.roles.join(', '))}${S.roles_count>S.roles.length?'…':''}<br>Seasons: ${esc(S.seasons.join(', '))}<br>United States only · Remote ${S.remote?'included':'excluded'} · No-location postings ${S.unknown?'included':'excluded'}</p><p><a href="${D.links.edit}" target="_blank" rel="noopener">Edit settings.toml ↗</a> (changes apply on the next scan; tap Scan now to run one)</p>`;
