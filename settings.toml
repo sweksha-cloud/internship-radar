@@ -27,6 +27,14 @@ role_keywords = [
   "compiler", "compilers", "distributed systems", "database engineer", "performance engineer",
   "gameplay", "game engine", "game developer", "graphics engineer", "vr development", "ar/vr", "xr developer",
   "computer science",
+  # DevOps / SRE / platform, solutions and cloud, data and security roles
+  "platform", "infrastructure", "cloud infrastructure", "production engineer", "production engineering",
+  "reliability engineer", "build engineer", "release engineer", "build and release", "devsecops", "aiops",
+  "system development engineer", "systems development engineer",
+  "solutions architect", "solution architect", "cloud architect", "customer engineer",
+  "delivery consultant", "cloud consultant",
+  "data engineer", "data engineering", "data platform", "data platforms",
+  "application security", "appsec",
 ]
 
 # Community lists also tag each posting with a category (Software, AI/ML/Data, Quant, Hardware, Product).

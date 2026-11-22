@@ -4,6 +4,7 @@ import unittest
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from radar.categories import ORDER, role_category
 from radar.filters import Matcher, load_settings, us_verdict, detect_season
 from radar.model import Posting, job_key, parse_board, role_key, terms_of, same_term
 from radar.page import merge_repeats
@@ -394,6 +395,41 @@ class YCCompanyPages(unittest.TestCase):
     def test_changed_page_is_an_error_not_silence(self):
         with self.assertRaises(Exception):
             yc.parse_company_jobs("<html>nothing here</html>", "Acme")
+
+
+class RoleCategories(unittest.TestCase):
+    """The page's role buttons: each posting gets exactly one type, checked in a fixed order."""
+    def test_each_type(self):
+        cases = {
+            "Software Engineer Intern": "SWE",
+            "Fullstack Engineer, Applications Engineering": "SWE",
+            "Site Reliability Engineer Intern": "DevOps/SRE",
+            "Backend Engineer, Infrastructure Engineering": "DevOps/SRE",
+            "Platform Engineering Intern": "DevOps/SRE",
+            "System Development Engineer Intern/Co-op, ROBOTICS": "DevOps/SRE",
+            "Machine Learning Engineer Intern": "AI/ML",
+            "SDE Intern, Machine Learning/Automated Reasoning": "AI/ML",
+            "Solutions Architect Intern, AWSI": "Solutions",
+            "Forward Deployed Engineer Intern": "Solutions",
+            "Security Engineer Internship": "Security",
+            "Data Engineer Internship": "Data",
+            "Software Engineer, Data Platforms": "Data",
+        }
+        for title, want in cases.items():
+            self.assertEqual(role_category(title), want, title)
+
+    def test_order_wins_when_two_fit(self):
+        self.assertEqual(role_category("Security Engineer, Cloud Platform"), "Security")
+        self.assertEqual(role_category("ML Platform Engineer Intern"), "AI/ML")
+        self.assertEqual(role_category("Data Infrastructure Intern"), "Data")
+
+    def test_short_words_need_whole_words(self):
+        # "ai" inside "maintain" or "ml" inside "html" must not count
+        self.assertEqual(role_category("HTML Email Developer Intern"), "SWE")
+        self.assertEqual(role_category("Maintainability Tools Intern"), "SWE")
+
+    def test_every_type_has_a_button(self):
+        self.assertEqual(sorted(ORDER), sorted({"SWE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"}))
 
 
 class YourSettingsFile(unittest.TestCase):
