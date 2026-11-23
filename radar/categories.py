@@ -1,6 +1,7 @@
 """Which kind of role a posting is, from its title, for the page's role buttons.
 
-Checked in order, so a title that fits two groups lands in the first: "Security Engineer,
+Checked in order, so a title that fits two groups lands in the first: "Forward Deployed AI
+Engineer" is FDE, "Security Engineer,
 Cloud Platform" is Security, "ML Platform Engineer" is AI/ML, "Data Platform" is Data.
 Anything that fits none is SWE.
 """
@@ -13,9 +14,14 @@ CATEGORIES: list[tuple[str, list[str]]] = [
         "security", "appsec", "cybersecurity", "cyber security", "devsecops", "offensive", "pentest",
         "penetration", "threat", "detection engineer",
     ]),
+    ("FDE", [
+        "forward deployed", "forward-deployed", "forward deploy", "fde", "deployed engineer",
+        "deployment engineer", "implementation engineer", "integration engineer", "integrations engineer",
+        "customer success engineer", "professional services engineer",
+    ]),
     ("Solutions", [
         "solutions architect", "solution architect", "solutions engineer", "solution engineer",
-        "customer engineer", "forward deployed", "forward-deployed", "delivery consultant",
+        "customer engineer", "delivery consultant",
         "cloud consultant", "cloud architect", "technical consultant", "field engineer",
     ]),
     ("AI/ML", [
@@ -35,7 +41,7 @@ CATEGORIES: list[tuple[str, list[str]]] = [
 ]
 
 # The order of the buttons on the page.
-ORDER = ["SWE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"]
+ORDER = ["SWE", "FDE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"]
 
 
 def _regex(words: list[str]) -> re.Pattern:

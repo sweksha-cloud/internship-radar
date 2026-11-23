@@ -33,6 +33,13 @@ class TitleFilters(unittest.TestCase):
                   "AI Research Intern", "Software Development Engineer in Test Intern"]:
             self.assertTrue(self.m.title_ok(t), t)
 
+    def test_real_settings_accept_fde_titles(self):
+        m = Matcher(load_settings(Path(__file__).resolve().parent.parent / "settings.toml"))
+        for t in ["Forward Deployed Engineer Intern", "Forward Deployed Software Engineer Intern",
+                  "FDE Intern", "Deployment Engineer Intern", "Implementation Engineer Intern",
+                  "Customer Success Engineer Intern", "Integration Engineer Intern"]:
+            self.assertTrue(m.title_ok(t), t)
+
     def test_rejects_non_internships_and_excluded(self):
         for t in ["Senior Software Engineer", "Internal Tools Engineer", "PhD Research Intern",
                   "Civil Engineering Intern", "Finance Reporting & Analytics Intern", "Hardware Engineering Intern",
@@ -410,7 +417,11 @@ class RoleCategories(unittest.TestCase):
             "Machine Learning Engineer Intern": "AI/ML",
             "SDE Intern, Machine Learning/Automated Reasoning": "AI/ML",
             "Solutions Architect Intern, AWSI": "Solutions",
-            "Forward Deployed Engineer Intern": "Solutions",
+            "Forward Deployed Engineer Intern": "FDE",
+            "Forward Deployed AI Engineer Intern": "FDE",
+            "FDE Intern (Summer 2027)": "FDE",
+            "Deployment Engineer Intern": "FDE",
+            "Implementation Engineer Intern": "FDE",
             "Security Engineer Internship": "Security",
             "Data Engineer Internship": "Data",
             "Software Engineer, Data Platforms": "Data",
@@ -429,7 +440,7 @@ class RoleCategories(unittest.TestCase):
         self.assertEqual(role_category("Maintainability Tools Intern"), "SWE")
 
     def test_every_type_has_a_button(self):
-        self.assertEqual(sorted(ORDER), sorted({"SWE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"}))
+        self.assertEqual(sorted(ORDER), sorted({"SWE", "FDE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"}))
 
 
 class YourSettingsFile(unittest.TestCase):
