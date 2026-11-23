@@ -16,7 +16,9 @@ role_keywords = [
   "mobile engineer", "mobile developer", "ios engineer", "ios developer", "android engineer", "android developer",
   "application engineer", "applications engineer", "app developer",
   # software engineering in related areas
-  "forward deployed", "forward-deployed", "solutions engineer", "product engineer",
+  "forward deployed", "forward-deployed", "forward deploy", "fde", "deployed engineer", "deployment engineer",
+  "implementation engineer", "integration engineer", "integrations engineer", "customer success engineer",
+  "professional services engineer", "solutions engineer", "product engineer",
   "ai engineer", "ai engineering", "ai software", "ai/ml engineer", "applied ai", "ai developer",
   "machine learning engineer", "ml engineer", "ml engineering", "ml infrastructure", "mlops",
   "infrastructure engineer", "platform engineer", "backend infrastructure",
