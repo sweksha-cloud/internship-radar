@@ -425,6 +425,11 @@ class RoleCategories(unittest.TestCase):
             "Security Engineer Internship": "Security",
             "Data Engineer Internship": "Data",
             "Software Engineer, Data Platforms": "Data",
+            "Product Manager Intern": "PM",
+            "Associate Product Manager Intern": "PM",
+            "Technical Program Manager Intern": "PM",
+            "AI Product Manager Intern": "PM",
+            "AI Intern": "AI/ML",
         }
         for title, want in cases.items():
             self.assertEqual(role_category(title), want, title)
@@ -440,7 +445,7 @@ class RoleCategories(unittest.TestCase):
         self.assertEqual(role_category("Maintainability Tools Intern"), "SWE")
 
     def test_every_type_has_a_button(self):
-        self.assertEqual(sorted(ORDER), sorted({"SWE", "FDE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"}))
+        self.assertEqual(sorted(ORDER), sorted({"SWE", "FDE", "DevOps/SRE", "AI/ML", "PM", "Solutions", "Security", "Data"}))
 
 
 class YourSettingsFile(unittest.TestCase):

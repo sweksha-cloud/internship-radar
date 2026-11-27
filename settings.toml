@@ -37,6 +37,12 @@ role_keywords = [
   "delivery consultant", "cloud consultant",
   "data engineer", "data engineering", "data platform", "data platforms",
   "application security", "appsec",
+  # AI roles of any kind (not only engineering titles)
+  "ai", "ai/ml", "artificial intelligence", "machine learning", "ml", "llm", "llms", "genai",
+  "generative ai", "deep learning", "computer vision", "nlp",
+  # product and technical program management
+  "product manager", "product management", "associate product manager", "apm",
+  "technical product manager", "program manager", "technical program manager", "tpm", "product owner",
 ]
 
 # Community lists also tag each posting with a category (Software, AI/ML/Data, Quant, Hardware, Product).
@@ -47,11 +53,11 @@ list_categories = []
 # Skip any posting whose title contains one of these.
 exclude_keywords = [
   # level / degree
-  "phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "manager", "director",
+  "phd", "ph.d", "ph.d.", "doctoral", "postdoc", "mba", "senior", "staff", "principal", "director",
   # business roles
   "sales", "marketing", "recruiter", "recruiting", "accounting", "audit", "tax", "finance", "financial",
   "risk", "consulting", "legal", "paralegal", "hr", "human resources", "supply chain", "procurement",
-  "operations", "product management", "product manager", "program management", "project management",
+  "operations", "project management",
   "business analyst", "trader", "trading", "investment banking",
   # non-software engineering
   "hardware", "asic", "silicon", "fpga", "rtl", "electrical", "mechanical", "civil", "chemical",
