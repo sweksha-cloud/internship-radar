@@ -87,6 +87,10 @@ class State:
         r["closed"] = False
         r["seen_by"][source_id] = run_ts
         r.setdefault("first_seen_by", {}).setdefault(source_id, run_ts)
+        if source_id.startswith(("greenhouse:", "lever:", "ashby:", "workday:")):
+            # a company board lists it, so it's open whatever its old link did
+            r.pop("dead_link", None)
+            r.pop("link_fails", None)
         # prefer a direct company link over a list's redirect link
         if r.get("first_source", "").startswith("list:") and not p.source.startswith("list:"):
             r["url"] = p.url

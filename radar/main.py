@@ -16,6 +16,7 @@ from .page import build_page
 from .sources import hackernews, lists, yc, yc_directory
 from .sources.ats import FETCHERS
 from .state import BROAD_INTERN_RE, State
+from .linkcheck import check_links
 
 SKIP_AFTER_FAILS = 5      # stop checking a board after this many failed scans in a row...
 RETRY_EVERY_RUNS = 50     # ...but retry it now and then
@@ -190,6 +191,9 @@ def main(argv=None):
 
     # 5. closed postings, alerts, page
     state.mark_closed(checked_ok, run_ts)
+    if settings.check_links:
+        health["sources"]["link_check"] = check_links(state.records, run_ts)
+        print(f"[link_check] {health['sources']['link_check']}")
     state.prune()
     state.meta["runs"] += 1
     state.meta["last_run"] = run_ts
