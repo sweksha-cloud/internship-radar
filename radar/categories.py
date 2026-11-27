@@ -1,6 +1,7 @@
 """Which kind of role a posting is, from its title, for the page's role buttons.
 
-Checked in order, so a title that fits two groups lands in the first: "Forward Deployed AI
+Checked in order, so a title that fits two groups lands in the first: "AI Product Manager" is PM,
+"Forward Deployed AI
 Engineer" is FDE, "Security Engineer,
 Cloud Platform" is Security, "ML Platform Engineer" is AI/ML, "Data Platform" is Data.
 Anything that fits none is SWE.
@@ -10,6 +11,11 @@ from __future__ import annotations
 import re
 
 CATEGORIES: list[tuple[str, list[str]]] = [
+    ("PM", [
+        "product manager", "product management", "associate product manager", "apm",
+        "technical product manager", "program manager", "program management", "technical program manager",
+        "tpm", "product owner",
+    ]),
     ("Security", [
         "security", "appsec", "cybersecurity", "cyber security", "devsecops", "offensive", "pentest",
         "penetration", "threat", "detection engineer",
@@ -41,7 +47,7 @@ CATEGORIES: list[tuple[str, list[str]]] = [
 ]
 
 # The order of the buttons on the page.
-ORDER = ["SWE", "FDE", "DevOps/SRE", "AI/ML", "Solutions", "Security", "Data"]
+ORDER = ["SWE", "FDE", "DevOps/SRE", "AI/ML", "PM", "Solutions", "Security", "Data"]
 
 
 def _regex(words: list[str]) -> re.Pattern:
