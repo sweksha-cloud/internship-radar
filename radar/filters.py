@@ -17,6 +17,9 @@ class Settings:
     allow_remote: bool = True
     allow_unknown: bool = True
     hide_past_seasons: bool = True
+    hide_started_seasons: bool = True
+    max_posting_age_days: float = 31
+    check_links: bool = True
     include_places: list = field(default_factory=list)
     exclude_places: list = field(default_factory=list)
     alerts_enabled: bool = True
@@ -44,6 +47,9 @@ def load_settings(path: str | Path) -> Settings:
         exclude_keywords=roles.get("exclude_keywords", []),
         seasons=roles.get("seasons", []),
         hide_past_seasons=roles.get("hide_past_seasons", True),
+        hide_started_seasons=roles.get("hide_started_seasons", True),
+        max_posting_age_days=raw.get("page", {}).get("max_posting_age_days", 31),
+        check_links=raw.get("page", {}).get("check_links", True),
         allow_remote=loc.get("allow_remote", True),
         allow_unknown=loc.get("allow_unknown", True),
         include_places=loc.get("include", []),
@@ -92,6 +98,8 @@ class Matcher:
     def season_ok(self, season: str | None, title: str = "") -> bool:
         if self.s.hide_past_seasons and season_is_past(season or detect_season(title)):
             return False
+        if self.s.hide_started_seasons and season_has_started(season or detect_season(title)):
+            return False
         if not self.seasons:
             return True
         hay = f"{season or ''} {title}".lower()
@@ -131,6 +139,23 @@ def season_is_past(season: str | None, today=None) -> bool:
     if not found or len(found) < len(re.findall(r"\b(spring|summer|fall|autumn|winter)\b", season, re.I)):
         return False
     return all(date(int(y), *SEASON_END[name.lower()]) < today for name, y in found)
+
+
+# when each internship season starts (month, day). A season that has already started
+# (e.g. "Fall 2026" in November 2026) is too late to apply for.
+SEASON_START = {"spring": (1, 15), "summer": (5, 15), "fall": (8, 15), "autumn": (8, 15), "winter": (1, 1)}
+
+
+def season_has_started(season: str | None, today=None) -> bool:
+    """True only if every season named has a year and has already started (e.g. 'Fall 2026' in Nov 2026)."""
+    from datetime import date
+    if not season:
+        return False
+    today = today or date.today()
+    found = re.findall(r"\b(spring|summer|fall|autumn|winter)\b\s*(20\d\d)", season, re.I)
+    if not found or len(found) < len(re.findall(r"\b(spring|summer|fall|autumn|winter)\b", season, re.I)):
+        return False
+    return all(date(int(y), *SEASON_START[name.lower()]) <= today for name, y in found)
 
 
 def detect_season(title: str, terms: list[str] | str | None = None) -> str | None:

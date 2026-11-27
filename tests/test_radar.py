@@ -499,5 +499,41 @@ class EndToEnd(unittest.TestCase):
                 self.assertIn(text, page)  # Done / Dismissed tabs and the Dismiss button
 
 
+
+class TestCleanup(unittest.TestCase):
+    def test_started_seasons(self):
+        from datetime import date
+        from radar.filters import season_has_started
+        today = date(2026, 11, 27)
+        self.assertTrue(season_has_started("Fall 2026", today))
+        self.assertFalse(season_has_started("Summer 2027", today))
+        self.assertFalse(season_has_started("Fall 2026, Winter 2027", today))
+        self.assertFalse(season_has_started("Summer", today))  # no year: can't tell
+
+    def test_sent_away(self):
+        from radar.linkcheck import _sent_away
+        self.assertTrue(_sent_away("https://x.breezy.hr/p/abc-intern", "https://x.breezy.hr/"))
+        self.assertTrue(_sent_away("https://job-boards.greenhouse.io/a/jobs/1",
+                                   "https://job-boards.greenhouse.io/a?error=true"))
+        self.assertFalse(_sent_away("https://careers.x.com/jobs/33748?icims=1",
+                                    "https://careers.x.com/careers-home/jobs/33748?icims=1"))
+        self.assertFalse(_sent_away("https://go.vansh.nyc/1aL", "https://www.tesla.com/careers/search/job/1"))
+
+    def test_link_hidden_after_two_dead_scans(self):
+        from radar.linkcheck import check_links
+        recs = {
+            "a": {"url": "https://a/1", "seen_by": {"list:Simplify": "t"}},
+            "b": {"url": "https://b/1", "seen_by": {"greenhouse:b": "t"}},  # board vouches: never checked
+            "c": {"url": "https://c/1", "seen_by": {"list:Simplify": "t"}},
+        }
+        status = {"https://a/1": "dead", "https://c/1": "unknown"}
+        check_links(recs, "t1", status_fn=lambda u: status[u])
+        self.assertFalse(recs["a"].get("dead_link"))
+        check_links(recs, "t2", status_fn=lambda u: status[u])
+        self.assertTrue(recs["a"]["dead_link"])
+        self.assertNotIn("link_checked", recs["b"])
+        self.assertFalse(recs["c"].get("dead_link"))
+
+
 if __name__ == "__main__":
     unittest.main()

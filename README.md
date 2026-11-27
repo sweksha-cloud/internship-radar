@@ -25,7 +25,7 @@ One connector per job system covers every company that uses it, so adding a comp
 - **Newest first:** postings are sorted by when the company posted them (or when the radar found them, if the company doesn't say). Switch to **Newest found first** to see what the radar picked up most recently, and use **Posted in last 24 hrs / 3 / 7 / 14 days** to see only recent ones.
 - **Role buttons:** above the filters, tap **SWE**, **FDE** (forward deployed, deployment and implementation engineer), **DevOps/SRE**, **AI/ML**, **PM** (product and technical program manager), **Solutions** (solutions architect, customer engineer), **Security** or **Data** to show only that kind of role; each shows how many are open. **All** shows everything. A title that fits two types goes to the first that matches, in the order PM, Security, FDE, Solutions, AI/ML, Data, DevOps/SRE, else SWE (`radar/categories.py`). Your choice is remembered in this browser.
 - **Startup labels:** an orange **YC W24**-style badge means the company is in YC's company directory (it links to the company's YC page). A **Startup** badge means it came from the Hacker News "Who is hiring?" thread. Use **YC companies only** or **Startups only (YC + HN)** to filter. Smaller YC companies are only labeled when their job board confirms it's the same company, so a big company that shares a name with a tiny YC startup isn't mislabeled. Some real YC companies may go unlabeled as a result.
-- **Mark done / Dismiss:** each posting has a **Mark done** button (for ones you applied to) and a **Dismiss** button (for ones you don't want). Both hide the posting from the **Open** list; nothing is deleted. The **Done** and **Dismissed** tabs list them, newest mark first, with the date you marked each one and an **Undo** / **Restore** button. A marked job stays in its list even after the posting closes or leaves the page. Marks are saved in your browser, so your phone and laptop keep separate lists. Postings stay on the page for 60 days unless the company takes them down.
+- **Mark done / Dismiss:** each posting has a **Mark done** button (for ones you applied to) and a **Dismiss** button (for ones you don't want). Both hide the posting from the **Open** list; nothing is deleted. The **Done** and **Dismissed** tabs list them, newest mark first, with the date you marked each one and an **Undo** / **Restore** button. A marked job stays in its list even after the posting closes or leaves the page. Marks are saved in your browser, so your phone and laptop keep separate lists. Postings older than 31 days, closed postings and dead links are removed automatically; see [Removing old and dead postings](#removing-old-and-dead-postings).
 - **Scan now:** the page's **Scan now** button opens the workflow. Click **Run workflow**. (The GitHub mobile app can do this too: repo → Actions → Radar → Run workflow.)
 - **Change what it looks for:** see [Choosing what it searches for](#choosing-what-it-searches-for) below.
 - **Change how often it scans:** GitHub drops many scheduled runs when it's busy (an every-3-hours schedule was really running 3–4 times a day), so the workflow is triggered every hour and a small `gate` job skips the scan unless the last one finished at least `MIN_GAP_MINUTES` (170) ago. Change that number in [`.github/workflows/radar.yml`](.github/workflows/radar.yml) to scan more or less often: 350 ≈ every 6 hours.
@@ -48,12 +48,35 @@ The scanner still reads every internship it finds and only applies your settings
 | `exclude_keywords` | Skip any title containing one of these | `["hardware", "finance", "senior"]` |
 | `seasons` | Only these seasons. `[]` = any season | `["Summer 2027", "Spring 2027"]` |
 | `hide_past_seasons` | Hide seasons that are already over | `true` |
+| `hide_started_seasons` | Hide seasons that have already started, so it's too late to apply ("Fall 2026" in November 2026) | `true` |
+| `max_posting_age_days` (under `[page]`) | Hide postings older than this many days. `0` = any age | `31` |
+| `check_links` (under `[page]`) | Hide postings whose link is dead | `true` |
 | `include` | Only these US places. `[]` = anywhere in the US | `["CA", "WA", "New York", "Remote"]` |
 | `exclude` | Never these places | `["TX", "Omaha"]` |
 | `allow_remote` | Keep "Remote" postings that don't name a country | `false` |
 | `allow_unknown` | Keep postings with no location | `false` |
 | `[sources]` | Turn whole sources on or off | `workday = false` |
 | `always_check` / `skip` | Company job boards to always check, or never check | `"greenhouse:stripe"` |
+
+### Removing old and dead postings
+
+The page removes postings on its own in four ways:
+
+1. **Older than 31 days.** A posting's age is the company's posting date, or the day the radar first found it if the company doesn't give one. Postings this old are usually filled.
+2. **Season already started or over.** "Fall 2026" disappears once fall 2026 starts (August 15), and "Summer 2026" once it ends. A posting that names a later season too ("Fall 2026, Winter 2027") stays.
+3. **Closed.** When every source that listed a posting (the company's board, the lists) stops listing it.
+4. **Dead link.** For postings no company job board vouches for (list, YC and Hacker News postings), each scan opens up to 400 links. A link that returns "not found" or sends you to the site's home page on **two scans in a row** is hidden. Sites that block the check or are slow are left alone, so a real job isn't removed by mistake. The **Health** section shows how many links were checked.
+
+**To change how old a posting can be,** edit `max_posting_age_days` under `[page]` in [`settings.toml`](settings.toml):
+
+```toml
+[page]
+max_posting_age_days = 31   # 14 = only the last two weeks, 60 = two months, 0 = no limit
+```
+
+Commit the change, then tap **Scan now**. Postings come back or disappear right away, since nothing is deleted from the radar's memory. Postings the radar remembers are kept for 60 days (`KEEP_DAYS` in `radar/state.py`), so a limit above 60 has no effect.
+
+**To keep "Fall 2026"-style postings** after their season starts, set `hide_started_seasons = false`. **To stop opening links**, set `check_links = false` under `[page]`.
 
 ### Changing the roles and jobs it looks for
 

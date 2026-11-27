@@ -18,10 +18,18 @@ def build_page(state, matcher, settings, health, site_dir, repo: str, yc_index: 
     from .main import matches  # avoid a circular import at module load
     from .sources.yc_directory import lookup
 
-    cutoff = (datetime.now(timezone.utc) - timedelta(days=PAGE_DAYS)).isoformat()
+    now = datetime.now(timezone.utc)
+    cutoff = (now - timedelta(days=PAGE_DAYS)).isoformat()
+    # postings older than max_posting_age_days (by the company's posting date, or when the radar
+    # found it if that's unknown) are usually filled or stale, so they're left off the page
+    age_cutoff = (now - timedelta(days=settings.max_posting_age_days)).isoformat() \
+        if settings.max_posting_age_days else ""
     rows = []
     for k, r in state.records.items():
-        if r.get("closed") or r.get("first_seen", "") < cutoff:
+        if r.get("closed") or r.get("dead_link") or r.get("first_seen", "") < cutoff:
+            continue
+        appeared = min(r["first_seen"], r["posted_at"]) if r.get("posted_at") else r["first_seen"]
+        if age_cutoff and appeared < age_cutoff:
             continue
         if not matches(matcher, r):
             continue

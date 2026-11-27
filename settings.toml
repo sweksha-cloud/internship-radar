@@ -68,6 +68,11 @@ exclude_keywords = [
   "scientist", "it support", "help desk", "technician",
   # design / content / other
   "ux", "ui/ux", "graphic", "content", "editorial", "radiology", "clinical", "nursing", "pharmacy",
+  # master's / grad-student only
+  "masters", "master's", "graduate intern", "graduate research",
+  # not your kind of role even though the title has a software word
+  "youth programming", "signal integrity", "field application engineer", "field applications engineer",
+  "hvac", "presales", "pre-sales", "vlsi", "power systems", "debt",
 ]
 
 # Seasons you want. Empty list = any season (Spring, Summer, Fall, Winter, starting now).
@@ -76,6 +81,18 @@ seasons = []
 
 # Hide postings whose season is already over (e.g. "Summer 2026" once it's October 2026).
 hide_past_seasons = true
+
+# Hide postings whose season has already started, so it's too late to apply (e.g. "Fall 2026" in November 2026).
+hide_started_seasons = true
+
+[page]
+# Hide postings older than this many days. Age = the company's posting date, or when the radar found it
+# if the company doesn't say. Older postings are usually filled. Set to 0 to show postings of any age.
+max_posting_age_days = 31
+
+# Open each posting's link that no company job board vouches for (list, YC and Hacker News postings),
+# and hide it once the page is gone (404, or sent to the home page) on two scans in a row.
+check_links = true
 
 [location]
 # United States only. A posting is kept when at least one of its locations is in the US:
