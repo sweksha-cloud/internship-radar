@@ -1,0 +1,83 @@
+{
+ "run_at": "2026-11-28T11:54:11+00:00",
+ "sources": {
+  "list:Simplify": {
+   "ok": true,
+   "internships": 5232,
+   "boards_found": 2162
+  },
+  "list:vanshb03": {
+   "ok": true,
+   "internships": 2490,
+   "boards_found": 0
+  },
+  "yc_directory": {
+   "ok": true,
+   "note": "5180 YC company names"
+  },
+  "yc_board_finder": {
+   "ok": true,
+   "note": "1380 hiring US YC startups; looked up 2 this scan (11 requests), 1 new boards; 473 YC boards known; 0 still to look up"
+  },
+  "ashby": {
+   "ok": true,
+   "boards_ok": 724,
+   "failed": 0,
+   "internships": 858
+  },
+  "greenhouse": {
+   "ok": true,
+   "boards_ok": 602,
+   "failed": 0,
+   "internships": 2214
+  },
+  "lever": {
+   "ok": true,
+   "boards_ok": 206,
+   "failed": 0,
+   "internships": 556
+  },
+  "workday": {
+   "ok": true,
+   "boards_ok": 1172,
+   "failed": 0,
+   "internships": 7948,
+   "locations_looked_up": 16
+  },
+  "yc": {
+   "ok": true,
+   "internships": 0
+  },
+  "yc_company_pages": {
+   "ok": true,
+   "pages_read": 122,
+   "failed": 28,
+   "internships": 22,
+   "note": "992 more due",
+   "errors": {
+    "HTTP 429": 28
+   }
+  },
+  "hackernews": {
+   "ok": true,
+   "internships": 0,
+   "comments_read": 0
+  },
+  "link_check": {
+   "checked": 400,
+   "dead": 4,
+   "alive": 391,
+   "unknown": 5,
+   "hidden": 0,
+   "ok": true,
+   "note": "400 links opened: 391 working, 4 look dead, 5 couldn't tell; 0 hidden after failing twice"
+  }
+ },
+ "boards": {},
+ "duration_s": 521.8,
+ "new_postings": 7,
+ "new_matching": 0,
+ "alerts_sent": 0,
+ "boards_checked": 2704,
+ "boards_known": 2800
+}
